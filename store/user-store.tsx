@@ -295,6 +295,7 @@ export const useUserStore = create<UserState>()(
       
       syncUserWithFirebase: async (firebaseUser) => {
         if (!firebaseUser) {
+          console.log('No Firebase user provided for sync');
           set({ 
             user: initialUser,
             isAuthenticated: false 
@@ -303,20 +304,66 @@ export const useUserStore = create<UserState>()(
         }
         
         try {
-          // Get user data from Firestore
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+          console.log('Starting user sync with Firebase for user:', firebaseUser.uid);
           
-          if (userDoc.exists()) {
-            // User exists in Firestore, use that data
-            const userData = userDoc.data() as UserProfile
-            set({ 
-              user: { ...userData, firebaseUser, id: firebaseUser.uid },
-              isAuthenticated: true 
-            })
-          } else {
-            // First time login or user doesn't exist in Firestore yet
-            // Create a new user profile
-            const newUser: UserProfile = {
+          // Get user data from Firestore
+          try {
+            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+            
+            if (userDoc.exists()) {
+              console.log('User document found in Firestore');
+              // User exists in Firestore, use that data
+              const userData = userDoc.data() as UserProfile
+              set({ 
+                user: { ...userData, firebaseUser, id: firebaseUser.uid },
+                isAuthenticated: true,
+                error: null
+              })
+              console.log('User data synced successfully from Firestore');
+            } else {
+              console.log('User document not found in Firestore, creating new profile');
+              // First time login or user doesn't exist in Firestore yet
+              // Create a new user profile
+              const newUser: UserProfile = {
+                id: firebaseUser.uid,
+                name: firebaseUser.displayName || '',
+                email: firebaseUser.email || '',
+                phone: firebaseUser.phoneNumber || '',
+                position: '',
+                department: '',
+                avatar: firebaseUser.photoURL || '',
+                joinDate: new Date().toISOString().split('T')[0],
+                employeeId: `EMP-${Math.floor(10000 + Math.random() * 90000)}`,
+                firebaseUser
+              }
+              
+              // Save to Firestore
+              try {
+                await setDoc(doc(db, 'users', firebaseUser.uid), {
+                  ...newUser,
+                  firebaseUser: null // Don't store Firebase user object in Firestore
+                })
+                console.log('New user profile created in Firestore');
+                
+                set({ 
+                  user: newUser,
+                  isAuthenticated: true,
+                  error: null
+                })
+              } catch (firestoreError) {
+                console.error('Error creating new user in Firestore:', firestoreError);
+                // Still set the user as authenticated even if Firestore fails
+                set({ 
+                  user: { ...newUser, firebaseUser },
+                  isAuthenticated: true,
+                  error: 'Profile created but not saved to cloud'
+                })
+              }
+            }
+          } catch (firestoreError) {
+            console.error('Error accessing Firestore during sync:', firestoreError);
+            // If Firestore fails but we have a Firebase user, still authenticate
+            const basicUser: UserProfile = {
               id: firebaseUser.uid,
               name: firebaseUser.displayName || '',
               email: firebaseUser.email || '',
@@ -329,20 +376,20 @@ export const useUserStore = create<UserState>()(
               firebaseUser
             }
             
-            // Save to Firestore
-            await setDoc(doc(db, 'users', firebaseUser.uid), {
-              ...newUser,
-              firebaseUser: null // Don't store Firebase user object in Firestore
-            })
-            
             set({ 
-              user: newUser,
-              isAuthenticated: true 
+              user: basicUser,
+              isAuthenticated: true,
+              error: 'Connected but cloud sync failed'
             })
           }
         } catch (error) {
-          console.error('Error syncing with Firebase:', error)
-          set({ error: 'Failed to sync user data' })
+          console.error('Fatal error syncing with Firebase:', error);
+          // Set more detailed error message
+          let errorMessage = 'Failed to sync user data';
+          if (error instanceof Error) {
+            errorMessage += `: ${error.message}`;
+          }
+          set({ error: errorMessage });
         }
       }
     }),

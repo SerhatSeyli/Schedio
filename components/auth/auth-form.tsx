@@ -93,9 +93,9 @@ export function AuthForm() {
           title: 'Welcome back!',
           description: 'You have successfully logged in.',
         })
-        // Short delay for better UX
+        // Use window.location for more reliable navigation in production
         setTimeout(() => {
-          router.push('/') // Redirect to dashboard
+          window.location.href = '/' // Redirect to dashboard using direct navigation
         }, 1000)
       } else {
         setAuthError(error || 'Invalid email or password. Please try again.')
@@ -118,9 +118,9 @@ export function AuthForm() {
           title: 'Account created!',
           description: 'Your account has been created successfully.',
         })
-        // Short delay for better UX
+        // Use window.location for more reliable navigation in production
         setTimeout(() => {
-          router.push('/') // Redirect to dashboard
+          window.location.href = '/' // Redirect to dashboard using direct navigation
         }, 1000)
       } else {
         setAuthError(error || 'Failed to create account. Please try again.')
@@ -143,9 +143,9 @@ export function AuthForm() {
           title: 'Welcome!',
           description: 'You have successfully logged in with Google.',
         })
-        // Short delay for better UX
+        // Use window.location for more reliable navigation in production
         setTimeout(() => {
-          router.push('/') // Redirect to dashboard
+          window.location.href = '/' // Redirect to dashboard using direct navigation
         }, 1000)
       } else {
         setAuthError(error || 'Failed to login with Google. Please try again.')
