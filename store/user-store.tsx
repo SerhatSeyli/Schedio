@@ -12,6 +12,8 @@ import {
   GoogleAuthProvider
 } from "firebase/auth"
 import { auth, db, googleProvider } from "@/lib/firebase"
+
+// No need for declaration as db is imported
 import { 
   doc, 
   setDoc, 
@@ -308,7 +310,17 @@ export const useUserStore = create<UserState>()(
           
           // Get user data from Firestore
           try {
-            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+            console.log('Attempting to fetch user document from Firestore...');
+            // Add timeout to Firestore operations to prevent hanging
+            const userDocPromise = getDoc(doc(db, 'users', firebaseUser.uid));
+            
+            // Create a timeout promise
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Firestore operation timed out')), 10000); // 10 second timeout
+            });
+            
+            // Race the promises
+            const userDoc = await Promise.race([userDocPromise, timeoutPromise]) as any;
             
             if (userDoc.exists()) {
               console.log('User document found in Firestore');

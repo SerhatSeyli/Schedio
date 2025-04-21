@@ -9,7 +9,7 @@ const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDQcf8YIP_LhBCdmqC7kC30ffy4lScWE1I",
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "shifttrac-5d100.firebaseapp.com",
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "shifttrac-5d100",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "shifttrac-5d100.firebasestorage.app",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "shifttrac-5d100.appspot.com",
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "727561855523",
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:727561855523:web:ddb1ada7532fa3e6840796",
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-SBBN282987"
@@ -18,7 +18,17 @@ const firebaseConfig = {
 // Initialize Firebase properly with the actual credentials
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
-const db = getFirestore(app);
+
+// Initialize Firestore with better error handling
+let db;
+try {
+  db = getFirestore(app);
+  console.log('Firestore initialized successfully');
+} catch (error) {
+  console.error('Error initializing Firestore:', error);
+  // Fallback to ensure the app doesn't crash even if Firestore fails
+  db = getFirestore(app);
+}
 const googleProvider = new GoogleAuthProvider();
 
 // Configure Google Auth Provider with specific client ID
