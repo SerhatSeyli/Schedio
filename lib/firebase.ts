@@ -20,7 +20,7 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
 // Initialize Firestore with better error handling
-let db;
+let db: ReturnType<typeof getFirestore>;
 try {
   db = getFirestore(app);
   console.log('Firestore initialized successfully');

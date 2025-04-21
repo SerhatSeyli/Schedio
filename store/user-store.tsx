@@ -305,6 +305,30 @@ export const useUserStore = create<UserState>()(
           return
         }
         
+        // Always set the user as authenticated first to prevent logout on sync failure
+        // Create a basic user profile from Firebase user data
+        const basicUser: UserProfile = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || '',
+          email: firebaseUser.email || '',
+          phone: firebaseUser.phoneNumber || '',
+          position: '',
+          department: '',
+          avatar: firebaseUser.photoURL || '',
+          joinDate: new Date().toISOString().split('T')[0],
+          employeeId: `EMP-${Math.floor(10000 + Math.random() * 90000)}`,
+          firebaseUser
+        }
+        
+        // Set basic authentication immediately
+        set({
+          user: basicUser,
+          isAuthenticated: true,
+          error: null
+        })
+        
+        console.log('User authenticated with basic profile, attempting cloud sync...');
+        
         try {
           console.log('Starting user sync with Firebase for user:', firebaseUser.uid);
           
@@ -374,34 +398,25 @@ export const useUserStore = create<UserState>()(
             }
           } catch (firestoreError) {
             console.error('Error accessing Firestore during sync:', firestoreError);
-            // If Firestore fails but we have a Firebase user, still authenticate
-            const basicUser: UserProfile = {
-              id: firebaseUser.uid,
-              name: firebaseUser.displayName || '',
-              email: firebaseUser.email || '',
-              phone: firebaseUser.phoneNumber || '',
-              position: '',
-              department: '',
-              avatar: firebaseUser.photoURL || '',
-              joinDate: new Date().toISOString().split('T')[0],
-              employeeId: `EMP-${Math.floor(10000 + Math.random() * 90000)}`,
-              firebaseUser
-            }
-            
-            set({ 
-              user: basicUser,
-              isAuthenticated: true,
-              error: 'Connected but cloud sync failed'
-            })
+            // If Firestore fails but we have a Firebase user, we're already authenticated with the basic profile
+            // Just update the error message but don't change authentication state
+            set(state => ({ 
+              ...state, // Keep existing state including user data
+              error: 'Connected but cloud sync failed. Your data will be saved locally.'
+            }))
           }
         } catch (error) {
           console.error('Fatal error syncing with Firebase:', error);
-          // Set more detailed error message
+          // Set more detailed error message but keep user logged in
           let errorMessage = 'Failed to sync user data';
           if (error instanceof Error) {
             errorMessage += `: ${error.message}`;
           }
-          set({ error: errorMessage });
+          // Only update the error message, don't change authentication state
+          set(state => ({
+            ...state, // Keep existing state including user data and authentication
+            error: errorMessage
+          }));
         }
       }
     }),
