@@ -211,15 +211,18 @@ export const useUserStore = create<UserState>()(
             return false;
           }
           
-          // Check if email confirmation is required by Supabase settings
-          // If email confirmation is required, user will NOT be confirmed yet
+          // We're implementing a smoother onboarding flow where email confirmation is NOT required
+          // Instead, users proceed directly to profile setup and are considered logged in
+          // An email confirmation can still happen in the background or be optional
+          
+          console.log('Proceeding with signup regardless of email confirmation status');
+          
+          // Note: You can check confirmation status here if needed, but we don't block the flow
           if (data.user.email_confirmed_at || data.user.confirmed_at) {
             console.log('User email already confirmed');
           } else {
-            console.log('Email confirmation required');
-            // Note: In many Supabase setups, we allow the user to proceed without confirmed email
-            // set({ loading: false, error: 'Please check your email to confirm your account before logging in.' });
-            // return false;
+            console.log('Email not confirmed yet, but allowing user to proceed');
+            // We could send a welcome email here or through a server function
           }
           const newUser: UserProfile = {
             id: data.user.id,

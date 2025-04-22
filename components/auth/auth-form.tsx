@@ -116,6 +116,8 @@ export function AuthForm() {
     setAuthError(null)
     
     try {
+      console.log('Starting signup process in form component')
+      
       const success = await signUp({
         name: data.name,
         email: data.email,
@@ -123,22 +125,37 @@ export function AuthForm() {
       })
       
       if (success) {
+        // Successful signup! Proceed to profile setup
         setAuthSuccess('Account created successfully! Redirecting to profile setup...')
         toast({
-          title: "Account created!",
-          description: "Welcome to Schedio. Let's set up your profile."
+          title: "Welcome to Schedio!",
+          description: "Your account was created successfully. Let's set up your profile."
         })
         
         // Redirect to profile setup after a short delay
         setTimeout(() => {
           router.push('/profile/setup')
-        }, 1000)
+        }, 1500)
       } else {
-        throw new Error('Signup failed. Please try again.')
+        // Get any error from the user store
+        const { error } = useUserStore.getState()
+        if (error) {
+          throw new Error(error)
+        } else {
+          throw new Error('Signup failed. Please check your information and try again.')
+        }
       }
     } catch (err: any) {
-      console.error('Signup error:', err)
-      setAuthError(err.message || 'An unexpected error occurred during signup. Please try again.')
+      console.error('Signup error in form component:', err)
+      
+      // Display user-friendly error messages
+      if (err.message.includes('already exists')) {
+        setAuthError('This email is already registered. Please try logging in instead.')
+      } else if (err.message.includes('weak')) {
+        setAuthError('Please use a stronger password. It should be at least 6 characters with uppercase letters and numbers.')
+      } else {
+        setAuthError(err.message || 'An unexpected error occurred during signup. Please try again.')
+      }
     } finally {
       setLoading(false)
     }
