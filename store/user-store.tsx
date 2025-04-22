@@ -184,7 +184,11 @@ export const useUserStore = create<UserState>()(
       signUp: async (credentials) => {
         const supabase = getSupabaseClient();
         set({ loading: true, error: null });
+        
+        console.log('Starting signup process with:', credentials.email);
+        
         try {
+          // Sign up with Supabase
           const { data, error } = await supabase.auth.signUp({
             email: credentials.email,
             password: credentials.password,
@@ -192,14 +196,30 @@ export const useUserStore = create<UserState>()(
               data: { name: credentials.name }
             }
           });
-          if (error || !data.user) {
-            set({ loading: false, error: error?.message || 'Failed to sign up' });
+          
+          console.log('Signup response:', { data, error });
+          
+          if (error) {
+            console.error('Supabase signup error:', error);
+            set({ loading: false, error: `Signup error: ${error.message}` });
             return false;
           }
-          // Supabase: If email confirmation is required, user will NOT be confirmed yet
-          if (!data.user.email_confirmed_at && !data.user.confirmed_at) {
-            set({ loading: false, error: 'Please check your email to confirm your account before logging in.' });
+          
+          if (!data.user) {
+            console.error('Signup failed: No user data returned');
+            set({ loading: false, error: 'Signup failed: No user data returned from Supabase' });
             return false;
+          }
+          
+          // Check if email confirmation is required by Supabase settings
+          // If email confirmation is required, user will NOT be confirmed yet
+          if (data.user.email_confirmed_at || data.user.confirmed_at) {
+            console.log('User email already confirmed');
+          } else {
+            console.log('Email confirmation required');
+            // Note: In many Supabase setups, we allow the user to proceed without confirmed email
+            // set({ loading: false, error: 'Please check your email to confirm your account before logging in.' });
+            // return false;
           }
           const newUser: UserProfile = {
             id: data.user.id,
