@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/store/user-store";
 import { getSupabaseClient } from '@/lib/supabase';
@@ -18,63 +18,88 @@ import { User, Briefcase, Building, DollarSign, Clock, BadgeCheck, ListFilter, C
 export default function ProfileSetupPage() {
   const { user, updateProfile } = useUserStore();
   const router = useRouter();
-  const [name, setName] = useState(user.name || "");
-  const [position, setPosition] = useState(user.position || "");
-  const [center, setCenter] = useState(user.center || "");
-  const [hourlyWage, setHourlyWage] = useState(user.hourlyWage || "");
-  const [employmentStatus, setEmploymentStatus] = useState(user.employmentStatus || "");
-  const [employeeId, setEmployeeId] = useState(user.employeeId || "");
-  const [unit, setUnit] = useState(user.unit || "");
-  const [avatar, setAvatar] = useState(user.avatar || "");
+  // Start with empty fields (clean slate)
+  const [name, setName] = useState("");
+  const [position, setPosition] = useState("");
+  const [center, setCenter] = useState("");
+  const [hourlyWage, setHourlyWage] = useState("");
+  const [employmentStatus, setEmploymentStatus] = useState("");
+  const [employeeId, setEmployeeId] = useState(user.employeeId || ""); // Keep the auto-generated ID
+  const [unit, setUnit] = useState("");
+  const [avatar, setAvatar] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string|null>(null);
+  const [setupComplete, setSetupComplete] = useState(false);
+  
+  // Check if user is already authenticated
+  useEffect(() => {
+    // If user is not authenticated, redirect to login page
+    if (!user.id) {
+      router.push('/login');
+    }
+    // If user already has a complete profile, redirect to profile page
+    else if (user.profile_complete) {
+      router.push('/profile');
+    }
+    // Initialize name with the value from authenticated user (from signup)
+    else if (user.name && !name) {
+      setName(user.name);
+    }
+  }, [router, user, name]);
+  
+  // Add a cleanup effect to prevent memory leaks and state updates after unmounting
+  useEffect(() => {
+    return () => {
+      // This will run when the component unmounts
+      setLoading(false);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent multiple submissions
+    if (loading) return;
+    
     setLoading(true);
     setError(null);
-    let avatarUrl = avatar;
+    
     try {
-      // If an avatar file was selected, we'll try to upload it, but we'll proceed with profile creation even if it fails
+      // Try to upload the avatar if one is selected
+      let avatarUrl = avatar;
       if (avatarFile) {
         try {
           const supabase = getSupabaseClient();
-          const fileExt = avatarFile.name.split('.').pop();
-          const filePath = `avatars/${user.id}.${fileExt}`;
+          const timestamp = new Date().getTime();
+          const filePath = `${user.id}_${timestamp}`;
           
-          // First, check if the bucket exists
+          // Check if the avatars bucket exists
           const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+          if (bucketsError) throw bucketsError;
+          
           const avatarsBucketExists = buckets?.some(bucket => bucket.name === 'avatars');
           
-          // If bucket doesn't exist, we'll create it (requires admin privileges)
-          if (!avatarsBucketExists) {
-            console.warn('Avatars bucket does not exist. Attempting to save profile without avatar.');
-            // For safety, we'll keep the base64 preview as the avatar
-            // This way the user still keeps their avatar, just not in storage
-            if (avatar && avatar.startsWith('data:image')) {
-              avatarUrl = avatar; // Keep the base64 image
-            } else {
-              avatarUrl = ""; // No avatar
-            }
-          } else {
+          if (avatarsBucketExists) {
             // Bucket exists, proceed with upload
             const { data, error: uploadError } = await supabase.storage.from('avatars').upload(filePath, avatarFile, { upsert: true });
             if (uploadError) throw uploadError;
             
             const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
             avatarUrl = urlData.publicUrl;
+          } else {
+            console.warn('Avatars bucket does not exist. Attempting to save profile without avatar.');
+            avatarUrl = "";
           }
         } catch (avatarError: any) {
           // We don't want avatar upload issues to block profile creation
           console.error('Avatar upload failed:', avatarError);
-          // If we have a base64 preview, use that instead
-          if (avatar && avatar.startsWith('data:image')) {
-            avatarUrl = avatar; // Fallback to base64 image
-          }
+          avatarUrl = "";
         }
       }
-      await updateProfile({
+
+      // Create the profile update data
+      const profileData = {
         name,
         position,
         center,
@@ -83,12 +108,36 @@ export default function ProfileSetupPage() {
         employeeId,
         unit,
         avatar: avatarUrl,
-        profile_complete: true
+        joinDate: new Date().toISOString().split('T')[0],
+        profile_complete: true,
+        department: "", // Ensure all fields are included
+        phone: ""
+      };
+      
+      // Save profile data using the proper updateProfile function
+      await updateProfile(profileData);
+      
+      // Update user metadata in Supabase to mark profile as complete
+      const supabase = getSupabaseClient();
+      await supabase.auth.updateUser({
+        data: {
+          // Use a spread of profile data but don't specify profile_complete twice
+          ...profileData
+        }
       });
-      router.push("/profile");
+      
+      console.log('Profile saved to Supabase');
+            
+      // Mark setup as complete
+      setSetupComplete(true);
+      setLoading(false);
+      
+      // Redirect to the profile page
+      router.push('/profile');
+      
     } catch (err: any) {
-      setError(err.message || "Failed to update profile");
-    } finally {
+      console.error('Error saving profile:', err);
+      setError(err.message || 'Failed to save profile');
       setLoading(false);
     }
   };

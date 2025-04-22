@@ -125,17 +125,18 @@ export function AuthForm() {
       })
       
       if (success) {
-        // Successful signup! Proceed to profile setup
-        setAuthSuccess('Account created successfully! Redirecting to profile setup...')
+        // Get success message from the user store
+        const { successMessage } = useUserStore.getState()
+        
+        // Display the success message about email confirmation
+        setAuthSuccess(successMessage || 'Account created successfully! Please check your email to confirm your account before logging in.')
+        
         toast({
-          title: "Welcome to Schedio!",
-          description: "Your account was created successfully. Let's set up your profile."
+          title: "Account Created",
+          description: "Please check your email for a confirmation link. You must confirm your email before logging in."
         })
         
-        // Redirect to profile setup after a short delay
-        setTimeout(() => {
-          router.push('/profile/setup')
-        }, 1500)
+        // No automatic redirect - user needs to confirm email first
       } else {
         // Get any error from the user store
         const { error } = useUserStore.getState()

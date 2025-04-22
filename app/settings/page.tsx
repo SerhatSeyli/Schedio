@@ -201,7 +201,7 @@ export default function SettingsPage() {
                 <CardHeader>
                   <CardTitle>Theme</CardTitle>
                   <CardDescription>
-                    Customize how ShiftTrac looks on your device
+                    Customize how Schedio looks on your device
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

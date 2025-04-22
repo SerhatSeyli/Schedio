@@ -144,7 +144,9 @@ export function Sidebar({}: SidebarProps) {
     <div 
       className={`h-full flex flex-col transition-all duration-300 ease-in-out ${expanded ? 'w-64' : 'w-16'}`}
       style={{
-        overflow: 'hidden'
+        overflow: 'hidden',
+        minWidth: expanded ? '16rem' : '4rem',
+        maxWidth: expanded ? '16rem' : '4rem'
       }}
     >
       {/* Toggle sidebar expansion - now at the top of sidebar */}
@@ -294,6 +296,14 @@ export function Sidebar({}: SidebarProps) {
             isActive={isActivePath('/profile')} 
             expanded={expanded}
             onClick={() => router.push('/profile')}
+          />
+          <NavItem 
+            icon={FileText} 
+            label="About"
+            href="/about" 
+            isActive={isActivePath('/about')} 
+            expanded={expanded}
+            onClick={() => router.push('/about')}
           />
         </nav>
       </div>

@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 export default function Mockups() {
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-8 text-center">ShiftTrac App Mockups</h1>
+      <h1 className="text-3xl font-bold mb-8 text-center">Schedio App Mockups</h1>
 
       <Tabs defaultValue="desktop" className="w-full">
         <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">

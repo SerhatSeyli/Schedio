@@ -27,9 +27,11 @@ export interface ShiftPreferences {
 export interface FinancialSettings {
   hourlyRate: number
   overtimeRate: number
+  overtimeMultiplier: 1.5 | 2 // Saskatchewan overtime multiplier: time-and-a-half (1.5) or double-time (2)
   defaultPayAmount: number
   payFrequency: "weekly" | "biweekly" | "monthly"
   payCardSubmissionDay: number // 0-6 for day of week
+  taxProvince: "SK" // Saskatchewan as default
 }
 
 export interface SettingsState {
@@ -75,7 +77,7 @@ export const useSettingsStore = create<SettingsState>()(
         shiftChanges: true,
         recurringEvents: true,
         systemAnnouncements: true,
-        emailNotifications: true,
+        emailNotifications: false,
         pushNotifications: true
       },
       appearance: {
@@ -84,17 +86,19 @@ export const useSettingsStore = create<SettingsState>()(
         colorScheme: "default"
       },
       shiftPreferences: {
-        preferredShiftType: "day",
-        preferredLocations: ["Main Building", "East Wing"],
+        preferredShiftType: "any",
+        preferredLocations: [],
         maxShiftsPerWeek: 5,
-        minRestHours: 12
+        minRestHours: 10
       },
       financialSettings: {
         hourlyRate: 25,
         overtimeRate: 37.5,
-        defaultPayAmount: 2500,
+        overtimeMultiplier: 1.5,
+        defaultPayAmount: 1000,
         payFrequency: "biweekly",
-        payCardSubmissionDay: 5 // Friday
+        payCardSubmissionDay: 5, // Friday
+        taxProvince: "SK" // Saskatchewan
       },
       recurringEvents: defaultRecurringEvents,
       

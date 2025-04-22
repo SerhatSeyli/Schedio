@@ -76,7 +76,7 @@ export function ExportSchedule() {
       // Create the table HTML
       tempDiv.innerHTML = `
         <div style="padding: 20px; font-family: Arial, sans-serif;">
-          <h1 style="text-align: center; margin-bottom: 20px;">ShiftTrac Schedule</h1>
+          <h1 style="text-align: center; margin-bottom: 20px;">Schedio Schedule</h1>
           <p style="text-align: center; margin-bottom: 30px;">
             ${dateRange === 'all' 
               ? 'All Shifts' 
@@ -140,7 +140,7 @@ export function ExportSchedule() {
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
       
       // Download PDF
-      pdf.save(`shifttrac-schedule-${format(new Date(), 'yyyy-MM-dd')}.pdf`)
+      pdf.save(`schedio-schedule-${format(new Date(), 'yyyy-MM-dd')}.pdf`)
       
       // Clean up
       document.body.removeChild(tempDiv)
@@ -211,11 +211,11 @@ export function ExportSchedule() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Start Date</label>
-              <DatePicker date={startDate} setDate={setStartDate} />
+              <DatePicker date={startDate} setDate={(date: Date | undefined) => date && setStartDate(date)} />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">End Date</label>
-              <DatePicker date={endDate} setDate={setEndDate} />
+              <DatePicker date={endDate} setDate={(date: Date | undefined) => date && setEndDate(date)} />
             </div>
           </div>
         )}
@@ -233,7 +233,7 @@ export function ExportSchedule() {
         ) : (
           <CSVLink
             data={getCSVData()}
-            filename={`shifttrac-schedule-${format(new Date(), 'yyyy-MM-dd')}.csv`}
+            filename={`schedio-schedule-${format(new Date(), 'yyyy-MM-dd')}.csv`}
             className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
           >
             <FileSpreadsheet className="mr-2 h-4 w-4" />

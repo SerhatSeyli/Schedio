@@ -1,6 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
 import {
   Cloud,
   CreditCard,
@@ -17,6 +18,7 @@ import {
   UserPlus,
   Users,
 } from "lucide-react"
+import { useUserStore } from "@/store/user-store"
 
 import {
   DropdownMenu,
@@ -36,21 +38,39 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export function ProfileMenu() {
   const router = useRouter()
+  const { user } = useUserStore()
+  const [initials, setInitials] = useState("")
+  
+  // Calculate initials from user's name
+  useEffect(() => {
+    if (user && user.name) {
+      const userInitials = user.name
+        .split(' ')
+        .map(part => part[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2);
+      setInitials(userInitials);
+    }
+  }, [user]);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Avatar className="h-9 w-9 border-2 border-primary/20 cursor-pointer hover:opacity-80 transition-opacity">
-          <AvatarImage src="/placeholder.svg?height=36&width=36" alt="User" />
-          <AvatarFallback>JD</AvatarFallback>
+          <AvatarImage 
+            src={user.avatar || "/placeholder.svg?height=36&width=36"} 
+            alt={user.name || "User"} 
+          />
+          <AvatarFallback>{initials || "U"}</AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">John Doe</p>
+            <p className="text-sm font-medium leading-none">{user.name || "User"}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              john.doe@example.com
+              {user.email || "email@example.com"}
             </p>
           </div>
         </DropdownMenuLabel>

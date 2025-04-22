@@ -1,10 +1,10 @@
 import type React from "react"
-import { Calendar, Home, PieChart, User } from "lucide-react"
+import { Calendar, Home, PieChart, User, FileText } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 interface BottomNavProps {
-  activePage?: "home" | "calendar" | "stats" | "profile"
+  activePage?: "home" | "calendar" | "stats" | "profile" | "about"
 }
 
 export function BottomNav({ activePage = "home" }: BottomNavProps) {
@@ -24,6 +24,12 @@ export function BottomNav({ activePage = "home" }: BottomNavProps) {
           icon={<User className="h-5 w-5" />}
           label="Profile"
           active={activePage === "profile"}
+        />
+        <NavItem
+          href="/about"
+          icon={<FileText className="h-5 w-5" />}
+          label="About"
+          active={activePage === "about"}
         />
       </div>
     </div>

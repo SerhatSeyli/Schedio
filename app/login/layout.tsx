@@ -1,8 +1,8 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Login | ShiftTrac',
-  description: 'Login to your ShiftTrac account',
+  title: 'Login | Schedio',
+  description: 'Login to your Schedio account',
 }
 
 export default function LoginLayout({

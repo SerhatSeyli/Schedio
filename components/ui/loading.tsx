@@ -12,7 +12,7 @@ export function LoadingScreen() {
             <Shield className="h-8 w-8 text-primary" />
           </div>
         </div>
-        <h2 className="text-xl font-bold">ShiftTrac</h2>
+        <h2 className="text-xl font-bold">Schedio</h2>
         <p className="text-sm text-muted-foreground">Loading your shifts...</p>
       </div>
     </div>

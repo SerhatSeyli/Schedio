@@ -1,5 +1,5 @@
-import { ProfilePage } from "@/components/profile-page-fixed"
+import { ProfilePageImproved } from "@/components/profile-page-improved-fixed"
 
 export default function Profile() {
-  return <ProfilePage />
+  return <ProfilePageImproved />
 }

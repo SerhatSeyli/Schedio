@@ -1,5 +1,5 @@
-import { StatsPage } from "@/components/stats-page"
+import { StatsPageEnhanced } from "@/components/stats-page-enhanced"
 
 export default function Stats() {
-  return <StatsPage />
+  return <StatsPageEnhanced />
 }

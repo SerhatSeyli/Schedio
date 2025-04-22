@@ -26,6 +26,7 @@ export interface UserState {
   isAuthenticated: boolean
   loading: boolean
   error: string | null
+  successMessage?: string | null
   initializeAuth: () => Promise<(() => void) | undefined>
   updateProfile: (profile: Partial<UserProfile>) => void
   login: (credentials: { email: string; password: string }) => Promise<boolean>
@@ -156,7 +157,25 @@ export const useUserStore = create<UserState>()(
             set({ loading: false, error: error?.message || 'Failed to login' });
             return false;
           }
+          
           const user = data.user;
+          
+          // Check if email is confirmed
+          if (!user.email_confirmed_at && !user.confirmed_at) {
+            set({
+              loading: false,
+              error: 'Email not confirmed. Please check your inbox and confirm your email before logging in.'
+            });
+            return false;
+          }
+          
+          // Clear any local storage items from previous sessions
+          localStorage.removeItem('schedioUserSession');
+          localStorage.removeItem('schedioUserProfile');
+          localStorage.removeItem('profileSetupComplete');
+          localStorage.removeItem('tempUserCredentials');
+          
+          // Create a clean user profile with no pre-filled data
           const newUser: UserProfile = {
             id: user.id,
             name: user.user_metadata?.name || '',
@@ -166,13 +185,16 @@ export const useUserStore = create<UserState>()(
             department: '',
             avatar: '',
             joinDate: new Date().toISOString().split('T')[0],
-            employeeId: '',
+            // Generate a new random employee ID for each new account
+            employeeId: `EMP-${Math.floor(10000 + Math.random() * 90000)}`,
+            // Set profile_complete to false for new users so they'll be directed to profile setup
             profile_complete: user.user_metadata?.profile_complete ?? false,
-            center: user.user_metadata?.center ?? '',
-            hourlyWage: user.user_metadata?.hourlyWage ?? '',
-            employmentStatus: user.user_metadata?.employmentStatus ?? '',
-            unit: user.user_metadata?.unit ?? ''
+            center: '',
+            hourlyWage: '',
+            employmentStatus: '',
+            unit: ''
           };
+          
           set({ user: newUser, isAuthenticated: true, loading: false });
           return true;
         } catch (err: any) {
@@ -188,12 +210,14 @@ export const useUserStore = create<UserState>()(
         console.log('Starting signup process with:', credentials.email);
         
         try {
-          // Sign up with Supabase
+          // Standard Supabase signup with email confirmation required
+          console.log('Proceeding with Supabase signup');
           const { data, error } = await supabase.auth.signUp({
             email: credentials.email,
             password: credentials.password,
             options: {
-              data: { name: credentials.name }
+              data: { name: credentials.name },
+              emailRedirectTo: `${window.location.origin}/login`
             }
           });
           
@@ -211,36 +235,25 @@ export const useUserStore = create<UserState>()(
             return false;
           }
           
-          // We're implementing a smoother onboarding flow where email confirmation is NOT required
-          // Instead, users proceed directly to profile setup and are considered logged in
-          // An email confirmation can still happen in the background or be optional
+          console.log('Signup successful, email confirmation required');
           
-          console.log('Proceeding with signup regardless of email confirmation status');
+          // Clear any previously stored session data
+          localStorage.removeItem('schedioUserSession');
+          localStorage.removeItem('schedioUserProfile');
+          localStorage.removeItem('profileSetupComplete');
+          localStorage.removeItem('tempUserCredentials');
+          // For signup, we no longer create a user profile in the store
+          // The user will need to confirm their email first, then log in
+          // After login, the profile setup page will handle creating the user profile
           
-          // Note: You can check confirmation status here if needed, but we don't block the flow
-          if (data.user.email_confirmed_at || data.user.confirmed_at) {
-            console.log('User email already confirmed');
-          } else {
-            console.log('Email not confirmed yet, but allowing user to proceed');
-            // We could send a welcome email here or through a server function
-          }
-          const newUser: UserProfile = {
-            id: data.user.id,
-            name: credentials.name,
-            email: credentials.email,
-            phone: '',
-            position: '',
-            department: '',
-            avatar: '',
-            joinDate: new Date().toISOString().split('T')[0],
-            employeeId: `EMP-${Math.floor(10000 + Math.random() * 90000)}`,
-            profile_complete: false,
-            center: '',
-            hourlyWage: '',
-            employmentStatus: '',
-            unit: ''
-          };
-          set({ user: newUser, isAuthenticated: true, loading: false });
+          // Set error to null and loading to false, but do not set the user or auth state
+          set({ 
+            loading: false, 
+            error: null,
+            // New success message to indicate email confirmation is required
+            successMessage: 'Account created! Please check your email to confirm your account before logging in.'
+          });
+          
           return true;
         } catch (err: any) {
           set({ loading: false, error: err.message || 'Failed to sign up' });

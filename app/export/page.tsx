@@ -4,7 +4,7 @@ import { ProtectedRoute } from '@/components/auth/protected-route'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Export Schedule | ShiftTrac',
+  title: 'Export Schedule | Schedio',
   description: 'Export your shift schedule as PDF or CSV',
 }
 

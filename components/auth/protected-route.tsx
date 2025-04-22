@@ -41,7 +41,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-t-2 border-primary"></div>
-          <p className="text-sm text-muted-foreground">Loading ShiftTrac...</p>
+          <p className="text-sm text-muted-foreground">Loading Schedio...</p>
         </div>
       </div>
     )
