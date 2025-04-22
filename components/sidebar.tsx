@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { useShiftStore } from "@/store/shift-store"
+import { useUserStore } from "@/store/user-store"
 import { Shift, ShiftType } from "@/store/shift-store"
 import { format, isAfter, addDays, parseISO, isValid } from "date-fns"
 
@@ -47,6 +48,7 @@ export function Sidebar({}: SidebarProps) {
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const { shifts } = useShiftStore()
+  const { user } = useUserStore()
   const { expanded, toggleSidebar } = useSidebar()
   const [upcomingShiftsExpanded, setUpcomingShiftsExpanded] = useState(true)
   
@@ -164,12 +166,16 @@ export function Sidebar({}: SidebarProps) {
       <div className="p-3 mt-1 flex items-center justify-center">
         <div className={`flex items-center ${expanded ? 'w-full space-x-3' : 'justify-center'}`}>
           <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
-            <UserCircle2 className="w-6 h-6 text-muted-foreground" />
+            {user.avatar ? (
+              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+            ) : (
+              <UserCircle2 className="w-6 h-6 text-muted-foreground" />
+            )}
           </div>
           {expanded && (
             <div className="space-y-1 overflow-hidden flex-1 min-w-0">
-              <h2 className="text-sm font-medium">John Doe</h2>
-              <p className="text-xs text-muted-foreground truncate">Correctional Officer</p>
+              <h2 className="text-sm font-medium">{user.name || 'New User'}</h2>
+              <p className="text-xs text-muted-foreground truncate">{user.position || user.center || 'No position set'}</p>
             </div>
           )}
         </div>
@@ -217,8 +223,16 @@ export function Sidebar({}: SidebarProps) {
                 </div>
               ))
             ) : (
-              <div className="text-center py-3 text-sm text-muted-foreground">
-                No upcoming shifts
+              <div className="text-xs text-muted-foreground py-2 text-center bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-100 dark:border-gray-700">
+                <p>No upcoming shifts</p>
+                <Button 
+                  variant="link" 
+                  size="sm" 
+                  className="text-xs p-0 h-auto mt-1"
+                  onClick={() => router.push('/schedule')}
+                >
+                  View all shifts
+                </Button>
               </div>
             )}
             

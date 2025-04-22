@@ -21,7 +21,8 @@ import {
   Mail, 
   Phone, 
   Camera, 
-  Cloud 
+  Cloud,
+  DollarSign
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -56,6 +57,10 @@ export function ProfilePage() {
   const [position, setPosition] = useState(user.position)
   const [department, setDepartment] = useState(user.department)
   const [employeeId, setEmployeeId] = useState(user.employeeId)
+  const [center, setCenter] = useState(user.center || '')
+  const [hourlyWage, setHourlyWage] = useState(user.hourlyWage || '')
+  const [employmentStatus, setEmploymentStatus] = useState(user.employmentStatus || '')
+  const [unit, setUnit] = useState(user.unit || '')
   
   // Settings store
   const { 
@@ -82,6 +87,10 @@ export function ProfilePage() {
     setPosition(user.position)
     setDepartment(user.department)
     setEmployeeId(user.employeeId)
+    setCenter(user.center || '')
+    setHourlyWage(user.hourlyWage || '')
+    setEmploymentStatus(user.employmentStatus || '')
+    setUnit(user.unit || '')
     setAvatarSrc(user.avatar || "")
   }, [user])
   
@@ -105,7 +114,11 @@ export function ProfilePage() {
         phone,
         position,
         department,
-        employeeId
+        employeeId,
+        center,
+        hourlyWage,
+        employmentStatus,
+        unit,
       })
       
       toast({
@@ -248,8 +261,28 @@ export function ProfilePage() {
                   </div>
                   <div className="flex items-center">
                     <Building className="h-4 w-4 mr-2 text-primary" />
-                    <span className="text-sm">{department}</span>
+                    <span className="text-sm">{center || department}</span>
                   </div>
+                  <div className="flex items-center">
+                    <Briefcase className="h-4 w-4 mr-2 text-primary" />
+                    <span className="text-sm">{position}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Clock className="h-4 w-4 mr-2 text-primary" />
+                    <span className="text-sm">{employmentStatus || 'Not set'}</span>
+                  </div>
+                  {unit && (
+                    <div className="flex items-center">
+                      <AlertTriangle className="h-4 w-4 mr-2 text-primary" />
+                      <span className="text-sm">Unit: {unit}</span>
+                    </div>
+                  )}
+                  {hourlyWage && (
+                    <div className="flex items-center">
+                      <DollarSign className="h-4 w-4 mr-2 text-primary" />
+                      <span className="text-sm">Hourly Wage: ${hourlyWage}/hr</span>
+                    </div>
+                  )}
                   <div className="flex items-center">
                     <Cloud className="h-4 w-4 mr-2 text-primary" />
                     <span className="text-sm text-green-600 font-medium">

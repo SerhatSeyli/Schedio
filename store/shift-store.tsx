@@ -1,17 +1,8 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import { db } from "@/lib/firebase"
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  getDocs, 
-  query, 
-  where, 
-  orderBy 
-} from "firebase/firestore"
+// TODO: Integrate with Supabase for cloud sync
+// import { supabase } from "@/lib/supabase"
+// All Firebase imports removed
 import { useUserStore } from "./user-store"
 
 export type ShiftType = "day" | "night" | "overtime" | "sick" | "vacation" | "meeting"
@@ -36,11 +27,12 @@ interface ShiftState {
   deleteShift: (id: number) => Promise<void>
   toggleCompleted: (id: number) => Promise<void>
   fetchShifts: () => Promise<void>
-  syncShiftsToCloud: () => Promise<void>
+  syncShiftsToCloud: () => Promise<void>, // TODO: Implement with Supabase
+  clearAllShifts: () => void // Function to clear all shifts on logout
 }
 
-// Initial mock data
-const initialShifts: Shift[] = [
+// Sample shifts for development or demonstration
+const demoShifts: Shift[] = [
   {
     id: 1,
     date: new Date(),
@@ -121,7 +113,15 @@ const initialShifts: Shift[] = [
     completed: false,
     location: "Conference Room",
   },
-]
+];
+
+// Initialize with empty array for new users
+const initialShifts: Shift[] = [];
+
+// Clear shifts function to be called on logout
+export const clearShifts = () => {
+  useShiftStore.getState().clearAllShifts();
+};
 
 export const useShiftStore = create<ShiftState>()(
   persist(
@@ -131,108 +131,28 @@ export const useShiftStore = create<ShiftState>()(
       error: null,
       
       addShift: async (shift) => {
-        const { shifts } = get()
-        const newId = Math.max(0, ...shifts.map((s) => s.id)) + 1
-        const newShift = {
-          ...shift,
-          id: newId,
-        }
-        
-        set((state) => ({
-          shifts: [...state.shifts, newShift],
-          loading: true
-        }))
-        
-        // Sync to Firestore if user is authenticated
-        const { isAuthenticated, user } = useUserStore.getState()
-        if (isAuthenticated && user.id) {
-          try {
-            const shiftRef = doc(collection(db, 'users', user.id, 'shifts'))
-            await setDoc(shiftRef, {
-              ...newShift,
-              date: newShift.date instanceof Date ? newShift.date.toISOString() : newShift.date,
-              userId: user.id
-            })
-            set({ loading: false })
-          } catch (error: any) {
-            console.error('Error adding shift to Firestore:', error)
-            set({ 
-              loading: false,
-              error: error.message || 'Failed to save shift to cloud'
-            })
-          }
-        } else {
-          set({ loading: false })
-        }
-        
-        return newId
+        // TODO: Replace with Supabase insert
+        // Local mock: just add to state
+        set(state => {
+          const newId = Math.max(0, ...state.shifts.map(s => s.id)) + 1;
+          const newShift = { ...shift, id: newId };
+          return { shifts: [...state.shifts, newShift] };
+        });
+        return Promise.resolve(Math.max(0, ...get().shifts.map(s => s.id)));
       },
       
       updateShift: async (id, updatedShift) => {
-        set((state) => ({
-          shifts: state.shifts.map((shift) => (shift.id === id ? { ...shift, ...updatedShift } : shift)),
-          loading: true
-        }))
-        
-        // Sync to Firestore if user is authenticated
-        const { isAuthenticated, user } = useUserStore.getState()
-        if (isAuthenticated && user.id) {
-          try {
-            // Find the shift in Firestore
-            const shiftsRef = collection(db, 'users', user.id, 'shifts')
-            const q = query(shiftsRef, where('id', '==', id))
-            const querySnapshot = await getDocs(q)
-            
-            if (!querySnapshot.empty) {
-              const shiftDoc = querySnapshot.docs[0]
-              await updateDoc(shiftDoc.ref, {
-                ...updatedShift,
-                date: updatedShift.date instanceof Date ? updatedShift.date.toISOString() : updatedShift.date
-              })
-            }
-            set({ loading: false })
-          } catch (error: any) {
-            console.error('Error updating shift in Firestore:', error)
-            set({ 
-              loading: false,
-              error: error.message || 'Failed to update shift in cloud'
-            })
-          }
-        } else {
-          set({ loading: false })
-        }
+        // TODO: Replace with Supabase update
+        set(state => ({
+          shifts: state.shifts.map(s => (s.id === id ? { ...s, ...updatedShift } : s)),
+        }));
+        return Promise.resolve();
       },
       
       deleteShift: async (id) => {
-        set((state) => ({
-          shifts: state.shifts.filter((shift) => shift.id !== id),
-          loading: true
-        }))
-        
-        // Sync to Firestore if user is authenticated
-        const { isAuthenticated, user } = useUserStore.getState()
-        if (isAuthenticated && user.id) {
-          try {
-            // Find the shift in Firestore
-            const shiftsRef = collection(db, 'users', user.id, 'shifts')
-            const q = query(shiftsRef, where('id', '==', id))
-            const querySnapshot = await getDocs(q)
-            
-            if (!querySnapshot.empty) {
-              const shiftDoc = querySnapshot.docs[0]
-              await deleteDoc(shiftDoc.ref)
-            }
-            set({ loading: false })
-          } catch (error: any) {
-            console.error('Error deleting shift from Firestore:', error)
-            set({ 
-              loading: false,
-              error: error.message || 'Failed to delete shift from cloud'
-            })
-          }
-        } else {
-          set({ loading: false })
-        }
+        // TODO: Replace with Supabase delete
+        set(state => ({ shifts: state.shifts.filter(s => s.id !== id) }));
+        return Promise.resolve();
       },
       
       toggleCompleted: async (id) => {
@@ -242,105 +162,28 @@ export const useShiftStore = create<ShiftState>()(
         
         const completed = !shift.completed
         
-        set((state) => ({
-          shifts: state.shifts.map((s) => (s.id === id ? { ...s, completed } : s)),
-          loading: true
-        }))
-        
-        // Sync to Firestore if user is authenticated
-        const { isAuthenticated, user } = useUserStore.getState()
-        if (isAuthenticated && user.id) {
-          try {
-            // Find the shift in Firestore
-            const shiftsRef = collection(db, 'users', user.id, 'shifts')
-            const q = query(shiftsRef, where('id', '==', id))
-            const querySnapshot = await getDocs(q)
-            
-            if (!querySnapshot.empty) {
-              const shiftDoc = querySnapshot.docs[0]
-              await updateDoc(shiftDoc.ref, { completed })
-            }
-            set({ loading: false })
-          } catch (error: any) {
-            console.error('Error updating shift completion in Firestore:', error)
-            set({ 
-              loading: false,
-              error: error.message || 'Failed to update shift in cloud'
-            })
-          }
-        } else {
-          set({ loading: false })
-        }
+        set(state => ({
+          shifts: state.shifts.map(s => (s.id === id ? { ...s, completed } : s)),
+        }));
+        return Promise.resolve();
       },
       
       fetchShifts: async () => {
-        const { isAuthenticated, user } = useUserStore.getState()
-        if (!isAuthenticated || !user.id) return
-        
-        set({ loading: true, error: null })
-        
-        try {
-          const shiftsRef = collection(db, 'users', user.id, 'shifts')
-          const q = query(shiftsRef, orderBy('date', 'asc'))
-          const querySnapshot = await getDocs(q)
-          
-          const shifts: Shift[] = []
-          querySnapshot.forEach((doc) => {
-            const data = doc.data()
-            shifts.push({
-              ...data,
-              id: data.id,
-              date: data.date ? new Date(data.date) : new Date(),
-            } as Shift)
-          })
-          
-          set({ shifts, loading: false })
-        } catch (error: any) {
-          console.error('Error fetching shifts from Firestore:', error)
-          set({ 
-            loading: false,
-            error: error.message || 'Failed to fetch shifts from cloud'
-          })
-        }
+        // TODO: Replace with Supabase fetch
+        // For now, do nothing (local only)
+        return Promise.resolve();
       },
       
       syncShiftsToCloud: async () => {
-        const { isAuthenticated, user } = useUserStore.getState()
-        const { shifts } = get()
-        
-        if (!isAuthenticated || !user.id) return
-        
-        set({ loading: true, error: null })
-        
-        try {
-          // Get all shifts for this user
-          const shiftsRef = collection(db, 'users', user.id, 'shifts')
-          const querySnapshot = await getDocs(shiftsRef)
-          
-          // Delete all existing shifts
-          const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref))
-          await Promise.all(deletePromises)
-          
-          // Add all current shifts
-          const addPromises = shifts.map(shift => {
-            const shiftRef = doc(collection(db, 'users', user.id, 'shifts'))
-            return setDoc(shiftRef, {
-              ...shift,
-              date: shift.date instanceof Date ? shift.date.toISOString() : shift.date,
-              userId: user.id
-            })
-          })
-          
-          await Promise.all(addPromises)
-          set({ loading: false })
-        } catch (error: any) {
-          console.error('Error syncing shifts to Firestore:', error)
-          set({ 
-            loading: false,
-            error: error.message || 'Failed to sync shifts to cloud'
-          })
-        }
-      }
+        // TODO: Implement cloud sync with Supabase
+        console.log('Syncing shifts to cloud...');
+        // Mock success response
+        return Promise.resolve();
+      },
+      
+      clearAllShifts: () => {
+        set({ shifts: [] });
+      },
     }),
     {
       name: "shift-storage",

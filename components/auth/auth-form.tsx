@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -20,138 +22,125 @@ const loginSchema = z.object({
     .email({ message: 'Please enter a valid email address' }),
   password: z.string()
     .min(1, { message: 'Password is required' })
-    .min(6, { message: 'Password must be at least 6 characters' }),
 })
 
 const signupSchema = z.object({
-  name: z.string()
-    .min(1, { message: 'Name is required' })
-    .min(2, { message: 'Name must be at least 2 characters' }),
+  name: z.string().min(1, { message: 'Name is required' }),
   email: z.string()
     .min(1, { message: 'Email is required' })
     .email({ message: 'Please enter a valid email address' }),
   password: z.string()
-    .min(1, { message: 'Password is required' })
     .min(6, { message: 'Password must be at least 6 characters' })
     .regex(/[A-Z]/, { message: 'Password must contain at least one uppercase letter' })
-    .regex(/[0-9]/, { message: 'Password must contain at least one number' }),
+    .regex(/[0-9]/, { message: 'Password must contain at least one number' })
 })
-
-type LoginFormValues = z.infer<typeof loginSchema>
-type SignupFormValues = z.infer<typeof signupSchema>
 
 export function AuthForm() {
   const [tab, setTab] = useState<'login' | 'signup'>('login')
+  const [loading, setLoading] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
   const [authSuccess, setAuthSuccess] = useState<string | null>(null)
-  const { login, signUp, googleLogin, loading, error } = useUserStore()
+  
   const router = useRouter()
   const { toast } = useToast()
-  
-  // Clear errors when tab changes
+  const { login, signUp } = useUserStore()
+
+  // Reset form state when tab changes
   useEffect(() => {
     setAuthError(null)
     setAuthSuccess(null)
+    setLoading(false)
   }, [tab])
-  
-  // Update local error state when store error changes
+
+  // Redirect if login was successful
   useEffect(() => {
-    if (error) {
-      setAuthError(error)
+    if (authSuccess && tab === 'login') {
+      const timer = setTimeout(() => {
+        router.push('/')
+      }, 1000)
+      
+      return () => clearTimeout(timer)
     }
-  }, [error])
+  }, [authSuccess, router, tab])
 
   // Login form
-  const loginForm = useForm<LoginFormValues>({
+  const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
-      password: '',
-    },
+      password: ''
+    }
   })
 
   // Signup form
-  const signupForm = useForm<SignupFormValues>({
+  const signupForm = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
       name: '',
       email: '',
-      password: '',
-    },
+      password: ''
+    }
   })
 
-  // Handle login form submission
-  const onLoginSubmit = async (data: LoginFormValues) => {
+  // Handle login submit
+  const onLoginSubmit = async (data: z.infer<typeof loginSchema>) => {
+    setLoading(true)
     setAuthError(null)
-    setAuthSuccess(null)
     
     try {
-      const success = await login(data)
+      const success = await login({
+        email: data.email,
+        password: data.password
+      })
+      
       if (success) {
         setAuthSuccess('Login successful! Redirecting...')
         toast({
-          title: 'Welcome back!',
-          description: 'You have successfully logged in.',
+          title: "Logged in successfully",
+          description: "Welcome back to Schedio",
         })
-        // Use window.location for more reliable navigation in production
-        setTimeout(() => {
-          window.location.href = '/' // Redirect to dashboard using direct navigation
-        }, 1000)
       } else {
-        setAuthError(error || 'Invalid email or password. Please try again.')
+        throw new Error('Login failed. Please check your credentials and try again.')
       }
     } catch (err: any) {
-      setAuthError(err.message || 'An unexpected error occurred')
+      console.error('Login error:', err)
+      setAuthError(err.message || 'An unexpected error occurred during login. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
-
-  // Handle signup form submission
-  const onSignupSubmit = async (data: SignupFormValues) => {
+  
+  // Handle signup submit
+  const onSignupSubmit = async (data: z.infer<typeof signupSchema>) => {
+    setLoading(true)
     setAuthError(null)
-    setAuthSuccess(null)
     
     try {
-      const success = await signUp(data)
+      const success = await signUp({
+        name: data.name,
+        email: data.email,
+        password: data.password
+      })
+      
       if (success) {
-        setAuthSuccess('Account created successfully! Redirecting...')
+        setAuthSuccess('Account created successfully! Redirecting to profile setup...')
         toast({
-          title: 'Account created!',
-          description: 'Your account has been created successfully.',
+          title: "Account created!",
+          description: "Welcome to Schedio. Let's set up your profile."
         })
-        // Use window.location for more reliable navigation in production
+        
+        // Redirect to profile setup after a short delay
         setTimeout(() => {
-          window.location.href = '/' // Redirect to dashboard using direct navigation
+          router.push('/profile/setup')
         }, 1000)
       } else {
-        setAuthError(error || 'Failed to create account. Please try again.')
+        throw new Error('Signup failed. Please try again.')
       }
     } catch (err: any) {
-      setAuthError(err.message || 'An unexpected error occurred')
-    }
-  }
-
-  // Handle Google login
-  const handleGoogleLogin = async () => {
-    setAuthError(null)
-    setAuthSuccess(null)
-    
-    try {
-      const success = await googleLogin()
-      if (success) {
-        setAuthSuccess('Google login successful! Redirecting...')
-        toast({
-          title: 'Welcome!',
-          description: 'You have successfully logged in with Google.',
-        })
-        // Use window.location for more reliable navigation in production
-        setTimeout(() => {
-          window.location.href = '/' // Redirect to dashboard using direct navigation
-        }, 1000)
-      } else {
-        setAuthError(error || 'Failed to login with Google. Please try again.')
-      }
-    } catch (err: any) {
-      setAuthError(err.message || 'An unexpected error occurred')
+      console.error('Signup error:', err)
+      setAuthError(err.message || 'An unexpected error occurred during signup. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -172,40 +161,25 @@ export function AuthForm() {
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              {authError.includes('unauthorized-domain') ? (
-                <>
-                  <p className="font-medium">Google login not available in development mode</p>
-                  <p className="text-sm mt-2">Please use email/password authentication for now. Google login will work when deployed to production.</p>
-                  <p className="text-sm mt-2 font-medium">For development testing:</p>
-                  <ol className="text-xs list-disc pl-5 mt-1 space-y-1 text-red-700/80">
-                    <li>Go to Firebase Console → Authentication → Settings</li>
-                    <li>Add the <strong>exact</strong> domain: <code className="bg-red-100 px-1 py-0.5 rounded">http://localhost:3003</code></li>
-                    <li>Or switch to email authentication below</li>
-                  </ol>
-                </>
-              ) : (
-                authError
-              )}
-            </AlertDescription>
+            <AlertDescription>{authError}</AlertDescription>
           </Alert>
         )}
         
         {authSuccess && (
-          <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <AlertTitle className="text-green-800">Success</AlertTitle>
-            <AlertDescription className="text-green-700">{authSuccess}</AlertDescription>
+          <Alert className="mb-4 border-green-500 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400">
+            <CheckCircle2 className="h-4 w-4" />
+            <AlertTitle>Success</AlertTitle>
+            <AlertDescription>{authSuccess}</AlertDescription>
           </Alert>
         )}
-        
-        <Tabs value={tab} onValueChange={(value) => setTab(value as 'login' | 'signup')} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="login" className="text-base">Login</TabsTrigger>
-            <TabsTrigger value="signup" className="text-base">Sign Up</TabsTrigger>
-          </TabsList>
 
-          <TabsContent value="login" className="space-y-4">
+        <Tabs value={tab} onValueChange={(value) => setTab(value as 'login' | 'signup')} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="login">Login</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="login">
             <Form {...loginForm}>
               <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
                 <FormField
@@ -218,8 +192,8 @@ export function AuthForm() {
                         <div className="relative">
                           <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                           <Input 
-                            placeholder="email@example.com" 
-                            className="pl-10" 
+                            placeholder="you@example.com" 
+                            className="pl-10 py-2 h-11" 
                             {...field} 
                           />
                         </div>
@@ -228,6 +202,7 @@ export function AuthForm() {
                     </FormItem>
                   )}
                 />
+                
                 <FormField
                   control={loginForm.control}
                   name="password"
@@ -240,7 +215,7 @@ export function AuthForm() {
                           <Input 
                             type="password" 
                             placeholder="******" 
-                            className="pl-10" 
+                            className="pl-10 py-2 h-11" 
                             {...field} 
                           />
                         </div>
@@ -249,19 +224,33 @@ export function AuthForm() {
                     </FormItem>
                   )}
                 />
+                
                 <Button 
                   type="submit" 
-                  className="w-full font-semibold py-2 h-11" 
+                  className="w-full" 
                   disabled={loading}
                 >
-                  {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                  Sign In
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                      Logging in...
+                    </>
+                  ) : (
+                    'Sign In'
+                  )}
                 </Button>
+                
+                <p className="text-sm text-center text-muted-foreground">
+                  Don't have an account?{' '}
+                  <Button variant="link" className="p-0 font-semibold" onClick={() => setTab('signup')}>
+                    Sign Up
+                  </Button>
+                </p>
               </form>
             </Form>
           </TabsContent>
-
-          <TabsContent value="signup" className="space-y-4">
+          
+          <TabsContent value="signup">
             <Form {...signupForm}>
               <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
                 <FormField
@@ -269,13 +258,13 @@ export function AuthForm() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Full Name</FormLabel>
+                      <FormLabel>Name</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                           <Input 
                             placeholder="John Doe" 
-                            className="pl-10" 
+                            className="pl-10 py-2 h-11" 
                             {...field} 
                           />
                         </div>
@@ -284,6 +273,7 @@ export function AuthForm() {
                     </FormItem>
                   )}
                 />
+                
                 <FormField
                   control={signupForm.control}
                   name="email"
@@ -294,8 +284,8 @@ export function AuthForm() {
                         <div className="relative">
                           <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                           <Input 
-                            placeholder="email@example.com" 
-                            className="pl-10" 
+                            placeholder="you@example.com" 
+                            className="pl-10 py-2 h-11" 
                             {...field} 
                           />
                         </div>
@@ -304,6 +294,7 @@ export function AuthForm() {
                     </FormItem>
                   )}
                 />
+                
                 <FormField
                   control={signupForm.control}
                   name="password"
@@ -316,77 +307,46 @@ export function AuthForm() {
                           <Input 
                             type="password" 
                             placeholder="******" 
-                            className="pl-10" 
+                            className="pl-10 py-2 h-11" 
                             {...field} 
                           />
                         </div>
                       </FormControl>
                       <FormMessage />
-                      <div className="text-xs text-muted-foreground flex items-center mt-1">
-                        <AlertTriangle className="h-3 w-3 mr-1" />
+                      <p className="text-xs text-muted-foreground">
+                        <AlertTriangle className="h-3 w-3 mr-1 inline" />
                         Password must have 6+ chars with uppercase & number
-                      </div>
+                      </p>
                     </FormItem>
                   )}
                 />
+                
                 <Button 
                   type="submit" 
-                  className="w-full font-semibold py-2 h-11" 
+                  className="w-full" 
                   disabled={loading}
                 >
-                  {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                  Create Account
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                      Creating account...
+                    </>
+                  ) : (
+                    'Create Account'
+                  )}
                 </Button>
+                
+                <p className="text-sm text-center text-muted-foreground">
+                  Already have an account?{' '}
+                  <Button variant="link" className="p-0 font-semibold" onClick={() => setTab('login')}>
+                    Sign In
+                  </Button>
+                </p>
               </form>
             </Form>
           </TabsContent>
         </Tabs>
-
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-xs text-center text-muted-foreground">Join Schedio with your Google account (works in production environment)</p>
-          <Button 
-            variant="outline" 
-            className="w-full h-11 font-medium border-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" 
-            onClick={handleGoogleLogin} 
-            disabled={loading}
-          >
-          {loading ? (
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          ) : (
-            <svg className="mr-2 h-5 w-5" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
-              <path fill="#4285F4" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
-            </svg>
-          )}
-          Continue with Google
-          </Button>
-        </div>
       </CardContent>
-      <CardFooter className="flex justify-center text-sm text-muted-foreground border-t pt-6">
-        {tab === 'login' ? (
-          <p>
-            Don't have an account?{' '}
-            <Button variant="link" className="p-0 font-semibold" onClick={() => setTab('signup')}>
-              Sign up
-            </Button>
-          </p>
-        ) : (
-          <p>
-            Already have an account?{' '}
-            <Button variant="link" className="p-0 font-semibold" onClick={() => setTab('login')}>
-              Sign in
-            </Button>
-          </p>
-        )}
-      </CardFooter>
     </Card>
   )
 }

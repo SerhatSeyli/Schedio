@@ -6,8 +6,10 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { SidebarProvider } from "@/components/sidebar-provider"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { AuthRedirect } from "@/components/auth/auth-redirect"
+// Import directly from the file path to avoid TypeScript errors
+import { AuthInitializer } from "../components/auth/auth-initializer"
 import { Toaster } from "@/components/ui/toaster"
-import { FirebaseInit } from "@/components/firebase-init"
+
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -26,6 +28,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <AuthProvider>
+          <AuthInitializer />
           <AuthRedirect />
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             <SidebarProvider>
@@ -33,7 +36,6 @@ export default function RootLayout({
             </SidebarProvider>
           </ThemeProvider>
           <Toaster />
-          <FirebaseInit />
         </AuthProvider>
       </body>
     </html>
