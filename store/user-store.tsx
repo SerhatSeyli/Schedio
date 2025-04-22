@@ -35,7 +35,7 @@ export interface UserState {
   syncUserWithSupabase: (user: SupabaseUser | null) => Promise<void>
 }
 
-// Initial user data
+// Initial user data - completely empty for fresh start
 const initialUser: UserProfile = {
   id: "",
   name: "",
@@ -45,7 +45,7 @@ const initialUser: UserProfile = {
   department: "",
   avatar: "",
   joinDate: "",
-  employeeId: "",
+  employeeId: "", // Empty by default - users should add their own ID
   profile_complete: false,
   center: '',
   hourlyWage: '',
@@ -145,7 +145,7 @@ export const useUserStore = create<UserState>()(
         }
       },
       
-      login: async (credentials) => {
+      login: async (credentials: { email: string; password: string }) => {
         const supabase = getSupabaseClient();
         set({ loading: true, error: null });
         try {
@@ -185,8 +185,8 @@ export const useUserStore = create<UserState>()(
             department: '',
             avatar: '',
             joinDate: new Date().toISOString().split('T')[0],
-            // Generate a new random employee ID for each new account
-            employeeId: `EMP-${Math.floor(10000 + Math.random() * 90000)}`,
+            // Empty employee ID by default
+            employeeId: '',
             // Set profile_complete to false for new users so they'll be directed to profile setup
             profile_complete: user.user_metadata?.profile_complete ?? false,
             center: '',
@@ -203,7 +203,7 @@ export const useUserStore = create<UserState>()(
         }
       },
       
-      signUp: async (credentials) => {
+      signUp: async (credentials: { email: string; password: string; name: string }) => {
         const supabase = getSupabaseClient();
         set({ loading: true, error: null });
         
@@ -276,28 +276,58 @@ export const useUserStore = create<UserState>()(
         }
       },
       
-      syncUserWithSupabase: async (supabaseUser) => {
+      syncUserWithSupabase: async (supabaseUser: SupabaseUser | null) => {
+        const supabase = getSupabaseClient();
+        
+        // Check if the Supabase user exists
         if (!supabaseUser) {
-          set({ user: initialUser, isAuthenticated: false });
+          console.log('No Supabase user, clearing current user data');
+          set({ isAuthenticated: false, loading: false, error: null, user: initialUser });
           return;
         }
-        const basicUser: UserProfile = {
-          id: supabaseUser.id,
-          name: supabaseUser.user_metadata?.name || '',
-          email: supabaseUser.email || '',
-          phone: '',
-          position: '',
-          department: '',
-          avatar: '',
-          joinDate: '',
-          employeeId: '',
-          profile_complete: supabaseUser.user_metadata?.profile_complete ?? false,
-          center: supabaseUser.user_metadata?.center ?? '',
-          hourlyWage: supabaseUser.user_metadata?.hourlyWage ?? '',
-          employmentStatus: supabaseUser.user_metadata?.employmentStatus ?? '',
-          unit: supabaseUser.user_metadata?.unit ?? ''
-        };
-        set({ user: basicUser, isAuthenticated: true, error: null });
+
+        try {
+          console.log('Syncing user profile with Supabase user ID:', supabaseUser.id);
+          // Get the profile from profiles table
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', supabaseUser.id)
+            .single();
+          
+          if (profileError && profileError.code !== 'PGRST116') {
+            // PGRST116 means no rows returned - that's OK for new users
+            console.error('Error fetching profile:', profileError);
+            set({ error: `Failed to fetch profile: ${profileError.message}` });
+          }
+
+          // Update our state with this data
+          set({
+            user: {
+              ...initialUser,
+              id: supabaseUser.id,
+              email: supabaseUser.email || '',
+              name: supabaseUser.user_metadata?.name || profileData?.name || '',
+              position: profileData?.position || '',
+              department: profileData?.department || '',
+              phone: profileData?.phone || '',
+              avatar: profileData?.avatar_url || '',
+              joinDate: profileData?.join_date || '',
+              employeeId: profileData?.employee_id || '', // Empty by default, user must provide their own ID
+              profile_complete: profileData?.profile_complete || false,
+              center: profileData?.center || '',
+              hourlyWage: profileData?.hourly_wage || '',
+              employmentStatus: profileData?.employment_status || '',
+              unit: profileData?.unit || ''
+            },
+            isAuthenticated: true,
+            loading: false,
+            error: null
+          });
+        } catch (error: any) {
+          console.error('Error syncing user with Supabase:', error);
+          set({ loading: false, error: error.message || 'Error syncing profile' });
+        }
       },
     }),
     {

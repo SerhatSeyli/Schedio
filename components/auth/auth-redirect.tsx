@@ -3,19 +3,50 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useUserStore } from '@/store/user-store'
+import { getSupabaseClient } from '@/lib/supabase'
 
 export function AuthRedirect() {
-  const { isAuthenticated, loading, user } = useUserStore();
+  const { isAuthenticated, loading, user, syncUserWithSupabase } = useUserStore();
   const router = useRouter();
   const pathname = usePathname();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [checkingEmailVerification, setCheckingEmailVerification] = useState(false);
+
+  // Check if email is verified when needed
+  useEffect(() => {
+    const checkEmailVerification = async () => {
+      if (!isAuthenticated || checkingEmailVerification) return;
+      
+      setCheckingEmailVerification(true);
+      const supabase = getSupabaseClient();
+      
+      try {
+        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+        
+        if (supabaseUser && !supabaseUser.email_confirmed_at && pathname !== '/login/verify-email') {
+          // User is logged in but email not verified
+          setIsRedirecting(true);
+          router.push('/login/verify-email');
+        } else if (supabaseUser && supabaseUser.email_confirmed_at) {
+          // Update local user state with confirmed status
+          await syncUserWithSupabase(supabaseUser);
+        }
+      } catch (error) {
+        console.error('Error checking email verification:', error);
+      } finally {
+        setCheckingEmailVerification(false);
+      }
+    };
+    
+    checkEmailVerification();
+  }, [isAuthenticated, pathname, router, syncUserWithSupabase, checkingEmailVerification]);
 
   useEffect(() => {
     // Don't redirect if still loading or already redirecting
-    if (loading || isRedirecting) return;
+    if (loading || isRedirecting || checkingEmailVerification) return;
     
     // Define public paths that don't require authentication
-    const publicPaths = ['/login', '/profile/setup'];
+    const publicPaths = ['/login', '/profile/setup', '/login/verify-email'];
     const isPublicPath = publicPaths.includes(pathname);
     
     // Debug information in development

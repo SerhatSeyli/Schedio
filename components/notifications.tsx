@@ -18,36 +18,7 @@ import { Notification } from "@/lib/types"
 export function NotificationsPopover() {
   const { recurringEvents, shifts } = useShiftStore()
   const [notificationsPanelOpen, setNotificationsPanelOpen] = useState(false)
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: "1",
-      type: "upcoming",
-      title: "Upcoming Shift",
-      message: "You have a Day Shift tomorrow at 07:00 AM in Main Building",
-      timeAgo: "about 2 hours ago",
-      read: false,
-      icon: <Calendar className="h-4 w-4" />
-    },
-    {
-      id: "2",
-      type: "changed",
-      title: "Shift Changed",
-      message: "Your shift on Friday has been changed from Night to Day",
-      timeAgo: "about 5 hours ago",
-      read: false,
-      icon: <AlertCircle className="h-4 w-4" />
-    },
-    {
-      id: "3",
-      type: "info",
-      title: "New Feature Available",
-      message: "Check out the new statistics dashboard to track your work hours",
-      timeAgo: "1 day ago",
-      read: false,
-      link: "/stats",
-      icon: <Info className="h-4 w-4" />
-    }
-  ])
+  const [notifications, setNotifications] = useState<Notification[]>([])
 
   const unreadCount = notifications.filter(n => !n.read).length
 

@@ -136,7 +136,10 @@ export function AuthForm() {
           description: "Please check your email for a confirmation link. You must confirm your email before logging in."
         })
         
-        // No automatic redirect - user needs to confirm email first
+        // Redirect to verify-email page
+        setTimeout(() => {
+          router.push('/login/verify-email')
+        }, 1500)
       } else {
         // Get any error from the user store
         const { error } = useUserStore.getState()
