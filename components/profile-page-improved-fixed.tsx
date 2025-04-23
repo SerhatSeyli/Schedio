@@ -52,16 +52,25 @@ export function ProfilePageImproved() {
   const { user, updateProfile, logout, isAuthenticated } = useUserStore()
   const [avatarSrc, setAvatarSrc] = useState<string>(user.avatar || "")  
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [name, setName] = useState(user.name)
-  const [email, setEmail] = useState(user.email)
-  // Removed phone field as requested
-  const [position, setPosition] = useState(user.position)
-  // Removed department field as requested
-  const [employeeId, setEmployeeId] = useState(user.employeeId)
-  const [center, setCenter] = useState(user.center || '')
-  const [hourlyWage, setHourlyWage] = useState(user.hourlyWage || '')
-  const [employmentStatus, setEmploymentStatus] = useState(user.employmentStatus || '')
-  const [unit, setUnit] = useState(user.unit || '')
+  // Initialize state with user values and preserve through rerenders
+  const [formState, setFormState] = useState({
+    name: user.name || "",
+    email: user.email || "",
+    position: user.position || "",
+    employeeId: user.employeeId || "",
+    center: user.center || "",
+    hourlyWage: user.hourlyWage || "",
+    employmentStatus: user.employmentStatus || "",
+    unit: user.unit || ""
+  })
+  
+  // Function to update individual form fields
+  const updateFormField = (field: string, value: string) => {
+    setFormState(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
   
   // Settings store
   const { 
@@ -82,18 +91,22 @@ export function ProfilePageImproved() {
   
   // Sync state with store when it changes
   useEffect(() => {
-    setName(user.name)
-    setEmail(user.email)
-    // Removed phone update
-    setPosition(user.position)
-    // Removed department update
-    setEmployeeId(user.employeeId)
-    setCenter(user.center || '')
-    setHourlyWage(user.hourlyWage || '')
-    setEmploymentStatus(user.employmentStatus || '')
-    setUnit(user.unit || '')
-    setAvatarSrc(user.avatar || "")
-  }, [user])
+    // Only update form state if user object changes significantly
+    // This prevents losing local edits when component rerenders
+    if (user.id) {
+      setFormState({
+        name: user.name || formState.name,
+        email: user.email || formState.email,
+        position: user.position || formState.position,
+        employeeId: user.employeeId || formState.employeeId,
+        center: user.center || formState.center,
+        hourlyWage: user.hourlyWage || formState.hourlyWage,
+        employmentStatus: user.employmentStatus || formState.employmentStatus,
+        unit: user.unit || formState.unit
+      })
+      setAvatarSrc(user.avatar || "")
+    }
+  }, [user.id])
   
   useEffect(() => {
     setNotifyBeforeShift(notifications.beforeShift)
@@ -128,16 +141,16 @@ export function ProfilePageImproved() {
   const handleSaveProfile = async () => {
     try {
       await updateProfile({
-        name,
-        email,
+        name: formState.name,
+        email: formState.email,
         phone: '', // Keeping the field in the API call but setting to empty
-        position,
+        position: formState.position,
         department: '', // Keeping the field in the API call but setting to empty
-        employeeId,
-        center,
-        hourlyWage,
-        employmentStatus,
-        unit,
+        employeeId: formState.employeeId,
+        center: formState.center,
+        hourlyWage: formState.hourlyWage,
+        employmentStatus: formState.employmentStatus,
+        unit: formState.unit,
         avatar: avatarSrc
       })
       
@@ -254,9 +267,9 @@ export function ProfilePageImproved() {
                 <CardHeader className="text-center pb-2">
                   <div className="flex justify-center mb-4 relative group">
                     <Avatar className="h-24 w-24 border-4 border-primary/20 shadow-lg hover:border-primary/40 transition-all duration-300">
-                      <AvatarImage src={avatarSrc || "/placeholder.svg?height=96&width=96"} alt={name} className="object-cover" />
+                      <AvatarImage src={avatarSrc || "/placeholder.svg?height=96&width=96"} alt={formState.name} className="object-cover" />
                       <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary/80 to-primary text-white">
-                        {name ? name.split(' ').map(n => n[0]).join('') : 'U'}
+                        {formState.name ? formState.name.split(' ').map((n: string) => n[0]).join('') : 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div 
@@ -275,13 +288,13 @@ export function ProfilePageImproved() {
                       onChange={handleImageChange} 
                     />
                   </div>
-                  <CardTitle className="text-xl font-bold">{name || 'Your Name'}</CardTitle>
-                  <CardDescription className="text-md">{position || 'Set your position'}</CardDescription>
+                  <CardTitle className="text-xl font-bold">{formState.name || 'Your Name'}</CardTitle>
+                  <CardDescription className="text-md">{formState.position || 'Set your position'}</CardDescription>
                   
                   <div className="mt-3 flex justify-center">
                     <Badge variant="outline" className="flex items-center gap-1 text-xs px-2 py-1 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
                       <Building className="h-3 w-3" />
-                      {position || 'Set Position'}
+                      {formState.position || 'Set Position'}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -292,7 +305,7 @@ export function ProfilePageImproved() {
                         <Mail className="h-3.5 w-3.5" />
                         Email
                       </span>
-                      <span className="font-medium">{email || 'Set your email'}</span>
+                      <span className="font-medium">{formState.email || 'Set your email'}</span>
                     </div>
                     <Separator />
                     <div className="flex items-center justify-between text-sm">
@@ -300,7 +313,7 @@ export function ProfilePageImproved() {
                         <Building className="h-3.5 w-3.5" />
                         Center
                       </span>
-                      <span className="font-medium">{center || 'Set center'}</span>
+                      <span className="font-medium">{formState.center || 'Set center'}</span>
                     </div>
                     <Separator />
                     <div className="flex items-center justify-between text-sm">
@@ -308,7 +321,7 @@ export function ProfilePageImproved() {
                         <Briefcase className="h-3.5 w-3.5" />
                         Employee ID
                       </span>
-                      <span className="font-medium">{employeeId || 'Set ID'}</span>
+                      <span className="font-medium">{formState.employeeId || 'Set ID'}</span>
                     </div>
                     <Separator />
                     <div className="flex items-center justify-between text-sm">
@@ -316,7 +329,7 @@ export function ProfilePageImproved() {
                         <DollarSign className="h-3.5 w-3.5" />
                         Hourly Wage
                       </span>
-                      <span className="font-medium">{hourlyWage ? `$${hourlyWage}` : 'Set wage'}</span>
+                      <span className="font-medium">{formState.hourlyWage ? `$${formState.hourlyWage}` : 'Set wage'}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -347,8 +360,8 @@ export function ProfilePageImproved() {
                       <Label htmlFor="name">Full Name</Label>
                       <Input 
                         id="name" 
-                        value={name} 
-                        onChange={(e) => setName(e.target.value)} 
+                        value={formState.name} 
+                        onChange={(e) => updateFormField('name', e.target.value)} 
                         placeholder="Your full name" 
                       />
                     </div>
@@ -356,8 +369,8 @@ export function ProfilePageImproved() {
                       <Label htmlFor="email">Email</Label>
                       <Input 
                         id="email" 
-                        value={email} 
-                        onChange={(e) => setEmail(e.target.value)} 
+                        value={formState.email} 
+                        onChange={(e) => updateFormField('email', e.target.value)} 
                         placeholder="Your email address"
                         type="email"
                       />
@@ -368,8 +381,8 @@ export function ProfilePageImproved() {
                     <div className="space-y-2">
                       <Label htmlFor="position">Position</Label>
                       <Select 
-                        value={position} 
-                        onValueChange={setPosition}
+                        value={formState.position} 
+                        onValueChange={(value) => updateFormField('position', value)}
                       >
                         <SelectTrigger id="position">
                           <SelectValue placeholder="Select your position" />
@@ -386,8 +399,8 @@ export function ProfilePageImproved() {
                       <Label htmlFor="employeeId">Employee ID</Label>
                       <Input 
                         id="employeeId" 
-                        value={employeeId} 
-                        onChange={(e) => setEmployeeId(e.target.value)} 
+                        value={formState.employeeId} 
+                        onChange={(e) => updateFormField('employeeId', e.target.value)} 
                         placeholder="Your employee ID"
                       />
                     </div>
@@ -397,8 +410,8 @@ export function ProfilePageImproved() {
                     <div className="space-y-2">
                       <Label htmlFor="center">Center</Label>
                       <Select 
-                        value={center} 
-                        onValueChange={setCenter}
+                        value={formState.center} 
+                        onValueChange={(value) => updateFormField('center', value)}
                       >
                         <SelectTrigger id="center">
                           <SelectValue placeholder="Select your center" />
@@ -414,8 +427,8 @@ export function ProfilePageImproved() {
                       <Label htmlFor="unit">Unit</Label>
                       <Input 
                         id="unit" 
-                        value={unit} 
-                        onChange={(e) => setUnit(e.target.value)} 
+                        value={formState.unit} 
+                        onChange={(e) => updateFormField('unit', e.target.value)} 
                         placeholder="Your unit"
                       />
                     </div>
@@ -426,8 +439,8 @@ export function ProfilePageImproved() {
                       <Label htmlFor="hourlyWage">Hourly Wage</Label>
                       <Input 
                         id="hourlyWage" 
-                        value={hourlyWage} 
-                        onChange={(e) => setHourlyWage(e.target.value)} 
+                        value={formState.hourlyWage} 
+                        onChange={(e) => updateFormField('hourlyWage', e.target.value)} 
                         placeholder="Your hourly wage"
                         type="number"
                         step="0.01"
@@ -437,10 +450,10 @@ export function ProfilePageImproved() {
                     <div className="space-y-2">
                       <Label htmlFor="employmentStatus">Employment Status</Label>
                       <Select 
-                        value={employmentStatus} 
-                        onValueChange={setEmploymentStatus}
+                        value={formState.employmentStatus} 
+                        onValueChange={(value) => updateFormField('employmentStatus', value)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id="employmentStatus">
                           <SelectValue placeholder="Select employment status" />
                         </SelectTrigger>
                         <SelectContent>
