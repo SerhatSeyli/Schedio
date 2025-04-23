@@ -288,18 +288,40 @@ export const useUserStore = create<UserState>()(
 
         try {
           console.log('Syncing user profile with Supabase user ID:', supabaseUser.id);
-          // Get the profile from profiles table
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', supabaseUser.id)
-            .single();
           
-          if (profileError && profileError.code !== 'PGRST116') {
-            // PGRST116 means no rows returned - that's OK for new users
-            console.error('Error fetching profile:', profileError);
-            set({ error: `Failed to fetch profile: ${profileError.message}` });
-          }
+          // Skip fetching profile from database and use the auth data
+          // This prevents errors when the profiles table doesn't exist yet
+          
+          // In a production environment, you would create the profiles table
+          // in Supabase and uncomment the code below
+          
+          // const { data: profileData, error: profileError } = await supabase
+          //   .from('profiles')
+          //   .select('*')
+          //   .eq('id', supabaseUser.id)
+          //   .single();
+          
+          // if (profileError && profileError.code !== 'PGRST116') {
+          //   // PGRST116 means no rows returned - that's OK for new users
+          //   console.error('Error fetching profile:', profileError);
+          //   set({ error: `Failed to fetch profile: ${profileError.message}` });
+          // }
+          
+          // Use empty profile data object - will be populated from user metadata
+          const profileData = {
+            name: '',
+            position: '',
+            department: '',
+            phone: '',
+            avatar_url: '',
+            join_date: '',
+            employee_id: '',
+            profile_complete: false,
+            center: '',
+            hourly_wage: '',
+            employment_status: '',
+            unit: ''
+          };
 
           // Update our state with this data
           set({
