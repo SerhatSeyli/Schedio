@@ -54,9 +54,9 @@ export function ProfilePageImproved() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState(user.name)
   const [email, setEmail] = useState(user.email)
-  const [phone, setPhone] = useState(user.phone)
+  // Removed phone field as requested
   const [position, setPosition] = useState(user.position)
-  const [department, setDepartment] = useState(user.department)
+  // Removed department field as requested
   const [employeeId, setEmployeeId] = useState(user.employeeId)
   const [center, setCenter] = useState(user.center || '')
   const [hourlyWage, setHourlyWage] = useState(user.hourlyWage || '')
@@ -84,9 +84,9 @@ export function ProfilePageImproved() {
   useEffect(() => {
     setName(user.name)
     setEmail(user.email)
-    setPhone(user.phone)
+    // Removed phone update
     setPosition(user.position)
-    setDepartment(user.department)
+    // Removed department update
     setEmployeeId(user.employeeId)
     setCenter(user.center || '')
     setHourlyWage(user.hourlyWage || '')
@@ -130,9 +130,9 @@ export function ProfilePageImproved() {
       await updateProfile({
         name,
         email,
-        phone,
+        phone: '', // Keeping the field in the API call but setting to empty
         position,
-        department,
+        department: '', // Keeping the field in the API call but setting to empty
         employeeId,
         center,
         hourlyWage,
@@ -281,7 +281,7 @@ export function ProfilePageImproved() {
                   <div className="mt-3 flex justify-center">
                     <Badge variant="outline" className="flex items-center gap-1 text-xs px-2 py-1 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
                       <Building className="h-3 w-3" />
-                      {department || 'Set Department'}
+                      {position || 'Set Position'}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -297,10 +297,10 @@ export function ProfilePageImproved() {
                     <Separator />
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground flex items-center gap-1">
-                        <Phone className="h-3.5 w-3.5" />
-                        Phone
+                        <Building className="h-3.5 w-3.5" />
+                        Center
                       </span>
-                      <span className="font-medium">{phone || 'Set your phone'}</span>
+                      <span className="font-medium">{center || 'Set center'}</span>
                     </div>
                     <Separator />
                     <div className="flex items-center justify-between text-sm">
@@ -366,35 +366,21 @@ export function ProfilePageImproved() {
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input 
-                        id="phone" 
-                        value={phone} 
-                        onChange={(e) => setPhone(e.target.value)} 
-                        placeholder="Your phone number"
-                        type="tel"
-                      />
-                    </div>
-                    <div className="space-y-2">
                       <Label htmlFor="position">Position</Label>
-                      <Input 
-                        id="position" 
+                      <Select 
                         value={position} 
-                        onChange={(e) => setPosition(e.target.value)} 
-                        placeholder="Your job position"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="department">Department</Label>
-                      <Input 
-                        id="department" 
-                        value={department} 
-                        onChange={(e) => setDepartment(e.target.value)} 
-                        placeholder="Your department"
-                      />
+                        onValueChange={setPosition}
+                      >
+                        <SelectTrigger id="position">
+                          <SelectValue placeholder="Select your position" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Correctional Officer">Correctional Officer</SelectItem>
+                          <SelectItem value="Manager">Manager</SelectItem>
+                          <SelectItem value="TeamLeader">TeamLeader</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="employeeId">Employee ID</Label>
@@ -403,7 +389,6 @@ export function ProfilePageImproved() {
                         value={employeeId} 
                         onChange={(e) => setEmployeeId(e.target.value)} 
                         placeholder="Your employee ID"
-                        disabled
                       />
                     </div>
                   </div>
@@ -411,12 +396,19 @@ export function ProfilePageImproved() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="center">Center</Label>
-                      <Input 
-                        id="center" 
+                      <Select 
                         value={center} 
-                        onChange={(e) => setCenter(e.target.value)} 
-                        placeholder="Your center location"
-                      />
+                        onValueChange={setCenter}
+                      >
+                        <SelectTrigger id="center">
+                          <SelectValue placeholder="Select your center" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Saskatoon Correctional Center (SCC)">Saskatoon Correctional Center (SCC)</SelectItem>
+                          <SelectItem value="Regina Correctional Center (RCC)">Regina Correctional Center (RCC)</SelectItem>
+                          <SelectItem value="Prince-Albert Correctional Center (PACC)">Prince-Albert Correctional Center (PACC)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="unit">Unit</Label>
