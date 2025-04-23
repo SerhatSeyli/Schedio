@@ -20,7 +20,7 @@ import { AddShiftDialog } from "@/components/add-shift-dialog"
 import { BottomNav } from "@/components/bottom-nav"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Sidebar } from "@/components/sidebar"
-import { useShiftStore } from "@/lib/store"
+import { useShiftStore } from "@/store/shift-store"
 import { NotificationsPopover } from "@/components/notifications"
 import { ProfileMenu } from "@/components/profile-menu"
 

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ShiftTypeIcon } from "@/components/shift-type-icon"
-import { useShiftStore } from "@/lib/store"
+import { useShiftStore } from "@/store/shift-store"
 import { AddShiftDialog } from "@/components/add-shift-dialog"
 import {
   AlertDialog,

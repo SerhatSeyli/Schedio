@@ -4,6 +4,7 @@ import { persist } from "zustand/middleware"
 // import { supabase } from "@/lib/supabase"
 // All Firebase imports removed
 import { useUserStore } from "./user-store"
+import { RecurringEvent } from "@/lib/recurring-dates"
 
 export type ShiftType = "day" | "night" | "overtime" | "sick" | "vacation" | "meeting"
 
@@ -16,10 +17,16 @@ export interface Shift {
   notes: string
   completed: boolean
   location: string
+  notify?: boolean
+  isPayDay?: boolean
+  isSubmitPayCard?: boolean
+  payAmount?: string
+  payCardNotes?: string
 }
 
 interface ShiftState {
   shifts: Shift[]
+  recurringEvents: RecurringEvent[]
   loading: boolean
   error: string | null
   addShift: (shift: Omit<Shift, "id">) => Promise<number>
@@ -27,12 +34,16 @@ interface ShiftState {
   deleteShift: (id: number) => Promise<void>
   toggleCompleted: (id: number) => Promise<void>
   fetchShifts: () => Promise<void>
-  syncShiftsToCloud: () => Promise<void>, // TODO: Implement with Supabase
+  syncShiftsToCloud: () => Promise<void> // TODO: Implement with Supabase
   clearAllShifts: () => void // Function to clear all shifts on logout
+  addRecurringEvent: (event: Omit<RecurringEvent, "id">) => void
+  updateRecurringEvent: (id: string, event: Partial<RecurringEvent>) => void
+  deleteRecurringEvent: (id: string) => void
 }
 
-// Initialize with empty array for new users
+// Initialize with empty arrays for new users
 const initialShifts: Shift[] = [];
+const initialRecurringEvents: RecurringEvent[] = [];
 
 // Clear shifts function to be called on logout
 export const clearShifts = () => {
@@ -43,6 +54,7 @@ export const useShiftStore = create<ShiftState>()(
   persist(
     (set, get) => ({
       shifts: initialShifts,
+      recurringEvents: initialRecurringEvents,
       loading: false,
       error: null,
       
@@ -98,8 +110,31 @@ export const useShiftStore = create<ShiftState>()(
       },
       
       clearAllShifts: () => {
-        set({ shifts: [] });
+        set({ shifts: [], recurringEvents: [] });
       },
+      
+      addRecurringEvent: (event) =>
+        set((state) => ({
+          recurringEvents: [
+            ...state.recurringEvents,
+            {
+              ...event,
+              id: String(Date.now()),
+            },
+          ],
+        })),
+        
+      updateRecurringEvent: (id, updatedEvent) =>
+        set((state) => ({
+          recurringEvents: state.recurringEvents.map((event) =>
+            event.id === id ? { ...event, ...updatedEvent } : event
+          ),
+        })),
+        
+      deleteRecurringEvent: (id) =>
+        set((state) => ({
+          recurringEvents: state.recurringEvents.filter((event) => event.id !== id),
+        })),
     }),
     {
       name: "shift-storage",

@@ -2,7 +2,7 @@
 
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay, isSameWeek, addWeeks } from "date-fns"
 import { cn } from "@/lib/utils"
-import { useShiftStore, Shift } from "@/lib/store"
+import { useShiftStore, Shift } from "@/store/shift-store"
 import { DollarSign, FileText } from "lucide-react"
 import { getNextOccurrence, RecurringEvent } from "@/lib/recurring-dates"
 

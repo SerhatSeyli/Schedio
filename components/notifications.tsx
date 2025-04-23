@@ -10,7 +10,7 @@ import {
   PopoverTrigger 
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { useShiftStore } from "@/lib/store"
+import { useShiftStore } from "@/store/shift-store"
 import { getNextOccurrence, getRecurringEventDates } from "@/lib/recurring-dates"
 import { NotificationsPanel } from "@/components/notifications-panel"
 import { Notification } from "@/lib/types"

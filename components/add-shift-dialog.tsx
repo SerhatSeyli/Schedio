@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useShiftStore, type ShiftType } from "@/lib/store"
+import { useShiftStore, type ShiftType } from "@/store/shift-store"
 import { RecurringEvent, getNextOccurrence } from "@/lib/recurring-dates"
 
 interface AddShiftDialogProps {

@@ -22,7 +22,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BottomNav } from "@/components/bottom-nav"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Sidebar } from "@/components/sidebar"
-import { useShiftStore } from "@/lib/store"
+import { useShiftStore } from "@/store/shift-store"
 
 export function StatsPage() {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date())
