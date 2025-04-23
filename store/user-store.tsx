@@ -122,21 +122,27 @@ export const useUserStore = create<UserState>()(
         set({ loading: true, error: null });
         
         try {
-          // Update user metadata in Supabase
+          // Always mark profile as complete when updating profile
+          const updatedData = {
+            ...data,
+            profile_complete: true
+          };
+          
+          // Update user metadata in Supabase with profile_complete flag
           const { error: updateError } = await supabase.auth.updateUser({
-            data: data,
+            data: updatedData,
           });
           
           if (updateError) throw updateError;
           
           // Update local state
           set(state => ({
-            user: { ...state.user, ...data },
+            user: { ...state.user, ...updatedData },
             loading: false,
             error: null
           }));
           
-          console.log('Profile updated successfully:', data);
+          console.log('Profile updated successfully with profile_complete flag:', updatedData);
           return true;
         } catch (error: any) {
           console.error('Error updating profile:', error);
@@ -323,6 +329,22 @@ export const useUserStore = create<UserState>()(
             unit: ''
           };
 
+          // Check if the user has user_metadata and any profile fields filled
+          const hasUserMetadata = !!supabaseUser.user_metadata;
+          const hasProfileFields = hasUserMetadata && (
+            supabaseUser.user_metadata?.name ||
+            supabaseUser.user_metadata?.position ||
+            supabaseUser.user_metadata?.employeeId ||
+            supabaseUser.user_metadata?.center
+          );
+          
+          // Explicitly check for profile_complete in metadata, or infer from profile fields
+          const isProfileComplete = 
+            supabaseUser.user_metadata?.profile_complete === true || 
+            hasProfileFields;
+          
+          console.log('Profile complete status:', isProfileComplete, 'User metadata:', supabaseUser.user_metadata);
+          
           // Update our state with this data
           set({
             user: {
@@ -330,17 +352,17 @@ export const useUserStore = create<UserState>()(
               id: supabaseUser.id,
               email: supabaseUser.email || '',
               name: supabaseUser.user_metadata?.name || profileData?.name || '',
-              position: profileData?.position || '',
-              department: profileData?.department || '',
-              phone: profileData?.phone || '',
-              avatar: profileData?.avatar_url || '',
-              joinDate: profileData?.join_date || '',
-              employeeId: profileData?.employee_id || '', // Empty by default, user must provide their own ID
-              profile_complete: profileData?.profile_complete || false,
-              center: profileData?.center || '',
-              hourlyWage: profileData?.hourly_wage || '',
-              employmentStatus: profileData?.employment_status || '',
-              unit: profileData?.unit || ''
+              position: supabaseUser.user_metadata?.position || profileData?.position || '',
+              department: supabaseUser.user_metadata?.department || profileData?.department || '',
+              phone: supabaseUser.user_metadata?.phone || profileData?.phone || '',
+              avatar: supabaseUser.user_metadata?.avatar || profileData?.avatar_url || '',
+              joinDate: supabaseUser.user_metadata?.joinDate || profileData?.join_date || '',
+              employeeId: supabaseUser.user_metadata?.employeeId || profileData?.employee_id || '', 
+              profile_complete: isProfileComplete,
+              center: supabaseUser.user_metadata?.center || profileData?.center || '',
+              hourlyWage: supabaseUser.user_metadata?.hourlyWage || profileData?.hourly_wage || '',
+              employmentStatus: supabaseUser.user_metadata?.employmentStatus || profileData?.employment_status || '',
+              unit: supabaseUser.user_metadata?.unit || profileData?.unit || ''
             },
             isAuthenticated: true,
             loading: false,
