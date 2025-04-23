@@ -21,7 +21,13 @@ export default function VerifyEmailPage() {
     const getUserEmail = async () => {
       try {
         const supabase = getSupabaseClient()
-        const { data } = await supabase.auth.getSession()
+        const { data, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('Error getting session:', error.message)
+          router.push('/login')
+          return
+        }
         
         if (data.session?.user?.email) {
           setEmail(data.session.user.email)
@@ -30,7 +36,8 @@ export default function VerifyEmailPage() {
           router.push('/login')
         }
       } catch (error) {
-        console.error('Error fetching user email:', error)
+        console.error('Error fetching user email:', error instanceof Error ? error.message : 'Unknown error')
+        router.push('/login')
       }
     }
 
@@ -43,14 +50,20 @@ export default function VerifyEmailPage() {
       setIsChecking(true)
       try {
         const supabase = getSupabaseClient()
-        const { data } = await supabase.auth.getUser()
+        const { data, error } = await supabase.auth.getUser()
+        
+        if (error) {
+          console.error('Error getting user data:', error.message)
+          setError('Unable to check verification status: ' + error.message)
+          return
+        }
         
         if (data.user?.email_confirmed_at) {
           setSuccessMessage('Your email has been verified! Redirecting to your profile...')
           setTimeout(() => router.push('/'), 2000)
         }
       } catch (error) {
-        console.error('Error checking verification status:', error)
+        console.error('Error checking verification status:', error instanceof Error ? error.message : 'Unknown error')
         setError('Unable to check verification status. Please try again.')
       } finally {
         setIsChecking(false)
@@ -73,12 +86,15 @@ export default function VerifyEmailPage() {
       })
       
       if (error) {
+        console.error('Error resending verification email:', error.message)
         setError(`Failed to resend verification email: ${error.message}`)
       } else {
         setSuccessMessage('Verification email resent! Please check your inbox.')
       }
     } catch (error: any) {
-      setError(error.message || 'Something went wrong. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Something went wrong'
+      console.error('Error in resend verification:', errorMessage)
+      setError(errorMessage || 'Something went wrong. Please try again.')
     } finally {
       setIsChecking(false)
     }

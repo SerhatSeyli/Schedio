@@ -21,7 +21,14 @@ export function AuthRedirect() {
       const supabase = getSupabaseClient();
       
       try {
-        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+        const { data, error } = await supabase.auth.getUser();
+        
+        if (error) {
+          console.error('Error getting user data:', error.message);
+          return;
+        }
+        
+        const supabaseUser = data.user;
         
         if (supabaseUser && !supabaseUser.email_confirmed_at && pathname !== '/login/verify-email') {
           // User is logged in but email not verified
@@ -32,7 +39,8 @@ export function AuthRedirect() {
           await syncUserWithSupabase(supabaseUser);
         }
       } catch (error) {
-        console.error('Error checking email verification:', error);
+        // Use a more structured error object to avoid empty console errors
+        console.error('Error checking email verification:', error instanceof Error ? error.message : 'Unknown error');
       } finally {
         setCheckingEmailVerification(false);
       }
