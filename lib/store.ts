@@ -33,110 +33,11 @@ interface ShiftState {
   deleteRecurringEvent: (id: string) => void
 }
 
-// Initial recurring events
-const initialRecurringEvents: RecurringEvent[] = [
-  {
-    id: '1',
-    title: 'Pay Day',
-    type: 'payday',
-    firstDate: new Date('2025-04-26'),  // April 26, 2025
-    interval: 2, // every 2 weeks
-    amount: '2500.00'
-  },
-  {
-    id: '2',
-    title: 'Submit Pay Card',
-    type: 'paycard',
-    firstDate: new Date('2025-04-18'),  // April 18, 2025
-    interval: 2, // every 2 weeks
-    destination: 'PSCClient',
-    notes: 'Submit to https://pscclient.saskatchewan.ca'
-  }
-]
+// Empty initial recurring events for fresh accounts
+const initialRecurringEvents: RecurringEvent[] = []
 
-// Initial mock data
-const initialShifts: Shift[] = [
-  {
-    id: 1,
-    date: new Date(),
-    type: "day",
-    startTime: "07:00",
-    endTime: "19:00",
-    notes: "",
-    completed: true,
-    location: "Main Building",
-  },
-  {
-    id: 2,
-    date: new Date(),
-    type: "overtime",
-    startTime: "19:00",
-    endTime: "23:00",
-    notes: "Emergency coverage",
-    completed: true,
-    location: "East Wing",
-  },
-  {
-    id: 3,
-    date: new Date(new Date().setDate(new Date().getDate() + 1)),
-    type: "night",
-    startTime: "19:00",
-    endTime: "07:00",
-    notes: "",
-    completed: false,
-    location: "West Wing",
-  },
-  {
-    id: 4,
-    date: new Date(new Date().setDate(new Date().getDate() + 2)),
-    type: "sick",
-    startTime: "",
-    endTime: "",
-    notes: "Migraine",
-    completed: false,
-    location: "",
-  },
-  {
-    id: 5,
-    date: new Date(new Date().setDate(new Date().getDate() + 5)),
-    type: "day",
-    startTime: "07:00",
-    endTime: "19:00",
-    notes: "",
-    completed: false,
-    location: "Main Building",
-  },
-  {
-    id: 6,
-    date: new Date(new Date().setDate(new Date().getDate() + 7)),
-    type: "night",
-    startTime: "19:00",
-    endTime: "07:00",
-    notes: "",
-    completed: false,
-    location: "East Wing",
-  },
-  {
-    id: 7,
-    date: new Date(new Date().setDate(new Date().getDate() + 10)),
-    type: "vacation",
-    startTime: "",
-    endTime: "",
-    notes: "Family trip",
-    completed: false,
-    location: "",
-  },
-  {
-    id: 8,
-    date: new Date(new Date().setDate(new Date().getDate() + 14)),
-    type: "meeting",
-    startTime: "10:00",
-    endTime: "11:30",
-    notes: "Staff meeting",
-    completed: false,
-    location: "Conference Room",
-  },
-]
+// Empty initial shifts for fresh accounts
+const initialShifts: Shift[] = []
 
 export const useShiftStore = create(
   persist<ShiftState>(
