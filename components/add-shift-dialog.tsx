@@ -155,14 +155,19 @@ export function AddShiftDialog({
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-xl bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border border-gray-200 dark:border-gray-800 shadow-xl">
+        {/* Add DialogTitle as a direct child of DialogContent for accessibility */}
+        <DialogTitle className="sr-only">
+          {isEditing ? "Edit Shift" : "Add New Shift"}
+        </DialogTitle>
+        
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3 mb-2">
             <div className="bg-gradient-to-br from-primary to-primary/80 text-white p-2 rounded-lg">
               <Briefcase className="h-5 w-5" />
             </div>
-            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
               {isEditing ? "Edit Shift" : "Add New Shift"}
-            </DialogTitle>
+            </h2>
           </div>
           <DialogDescription className="text-muted-foreground">
             {isEditing ? "Update shift details" : "Create a new shift in your schedule."}
