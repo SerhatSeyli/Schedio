@@ -33,6 +33,8 @@ export interface UserState {
   signUp: (credentials: { email: string; password: string; name: string }) => Promise<boolean>
   logout: () => Promise<void>
   syncUserWithSupabase: (user: SupabaseUser | null) => Promise<void>
+  saveUserToLocalStorage: (userData: UserProfile) => void
+  loadUserFromLocalStorage: () => UserProfile | null
 }
 
 // Initial user data - completely empty for fresh start
@@ -117,6 +119,27 @@ export const useUserStore = create<UserState>()(
       loading: false,
       error: null,
       
+      saveUserToLocalStorage: (userData: UserProfile) => {
+        try {
+          localStorage.setItem('schedio_user_data', JSON.stringify(userData));
+          localStorage.setItem('schedio_last_updated', new Date().toISOString());
+          console.log('User data saved to localStorage for offline use');
+        } catch (err) {
+          console.error('Error saving to localStorage:', err);
+        }
+      },
+      
+      loadUserFromLocalStorage: (): UserProfile | null => {
+        try {
+          const userData = localStorage.getItem('schedio_user_data');
+          if (!userData) return null;
+          return JSON.parse(userData) as UserProfile;
+        } catch (err) {
+          console.error('Error loading from localStorage:', err);
+          return null;
+        }
+      },
+      
       updateProfile: async (data: Partial<UserProfile>) => {
         const supabase = getSupabaseClient();
         set({ loading: true, error: null });
@@ -128,16 +151,30 @@ export const useUserStore = create<UserState>()(
             profile_complete: true
           };
           
+          // Save to localStorage first for offline reliability
+          const currentState = get();
+          const updatedUser = { ...currentState.user, ...updatedData };
+          get().saveUserToLocalStorage(updatedUser);
+          
           // Update user metadata in Supabase with profile_complete flag
           const { error: updateError } = await supabase.auth.updateUser({
             data: updatedData,
           });
           
-          if (updateError) throw updateError;
+          if (updateError) {
+            console.warn('Error updating Supabase, but changes saved locally:', updateError);
+            // Don't throw error here - we've saved to localStorage
+            set(state => ({
+              user: updatedUser,
+              loading: false,
+              error: 'Changes saved locally but not synced to cloud. Will sync when online.'
+            }));
+            return true; // Still return success since we saved locally
+          }
           
           // Update local state
           set(state => ({
-            user: { ...state.user, ...updatedData },
+            user: updatedUser,
             loading: false,
             error: null
           }));
@@ -146,8 +183,23 @@ export const useUserStore = create<UserState>()(
           return true;
         } catch (error: any) {
           console.error('Error updating profile:', error);
-          set({ loading: false, error: error.message || 'Failed to update profile' });
-          return false;
+          
+          // Try to save locally even if Supabase update fails
+          try {
+            const currentState = get();
+            const updatedUser = { ...currentState.user, ...data, profile_complete: true };
+            get().saveUserToLocalStorage(updatedUser);
+            
+            set({
+              user: updatedUser,
+              loading: false,
+              error: 'Changes saved locally but not synced to cloud due to connectivity issues.'
+            });
+            return true; // Still return success
+          } catch (localError) {
+            set({ loading: false, error: error.message || 'Failed to update profile' });
+            return false;
+          }
         }
       },
       
@@ -285,6 +337,32 @@ export const useUserStore = create<UserState>()(
       syncUserWithSupabase: async (supabaseUser: SupabaseUser | null) => {
         const supabase = getSupabaseClient();
         
+        // First check for network connectivity
+        if (!navigator.onLine) {
+          console.log('Device is offline - using cached user data if available');
+          
+          // Try to load user data from localStorage
+          const cachedUserData = get().loadUserFromLocalStorage();
+          if (cachedUserData && cachedUserData.id) {
+            console.log('Found cached user data, using that while offline');
+            set({
+              user: cachedUserData,
+              isAuthenticated: true, // Keep user logged in with cached data
+              loading: false,
+              error: 'You appear to be offline. Using locally saved data.'
+            });
+            return;
+          }
+          
+          // Keep the current user state but mark as offline
+          set(state => ({
+            ...state,
+            loading: false,
+            error: 'You appear to be offline. Some features may be limited.'
+          }));
+          return;
+        }
+        
         // Check if the Supabase user exists
         if (!supabaseUser) {
           console.log('No Supabase user, clearing current user data');
@@ -294,6 +372,28 @@ export const useUserStore = create<UserState>()(
 
         try {
           console.log('Syncing user profile with Supabase user ID:', supabaseUser.id);
+          
+          // Implement retry logic for network connectivity issues
+          let retryCount = 0;
+          const maxRetries = 3;
+          let succeeded = false;
+          
+          while (!succeeded && retryCount < maxRetries) {
+            try {
+              // Verify connectivity with a lightweight ping request
+              await supabase.from('_pgrst_reserved_dummy').select('count', { count: 'exact', head: true });
+              succeeded = true;
+            } catch (pingError) {
+              retryCount++;
+              console.warn(`Network check attempt ${retryCount} failed, retrying...`);
+              // Add exponential backoff
+              await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount - 1)));
+            }
+          }
+          
+          if (!succeeded) {
+            throw new Error('Network connectivity issues detected. Please check your connection.');
+          }
           
           // Skip fetching profile from database and use the auth data
           // This prevents errors when the profiles table doesn't exist yet
@@ -345,32 +445,61 @@ export const useUserStore = create<UserState>()(
           
           console.log('Profile complete status:', isProfileComplete, 'User metadata:', supabaseUser.user_metadata);
           
+          // Create the updated user object
+          const updatedUser = {
+            ...initialUser,
+            id: supabaseUser.id,
+            email: supabaseUser.email || '',
+            name: supabaseUser.user_metadata?.name || profileData?.name || '',
+            position: supabaseUser.user_metadata?.position || profileData?.position || '',
+            department: supabaseUser.user_metadata?.department || profileData?.department || '',
+            phone: supabaseUser.user_metadata?.phone || profileData?.phone || '',
+            avatar: supabaseUser.user_metadata?.avatar || profileData?.avatar_url || '',
+            joinDate: supabaseUser.user_metadata?.joinDate || profileData?.join_date || '',
+            employeeId: supabaseUser.user_metadata?.employeeId || profileData?.employee_id || '', 
+            profile_complete: isProfileComplete,
+            center: supabaseUser.user_metadata?.center || profileData?.center || '',
+            hourlyWage: supabaseUser.user_metadata?.hourlyWage || profileData?.hourly_wage || '',
+            employmentStatus: supabaseUser.user_metadata?.employmentStatus || profileData?.employment_status || '',
+            unit: supabaseUser.user_metadata?.unit || profileData?.unit || ''
+          };
+          
+          // Save to localStorage for offline support
+          get().saveUserToLocalStorage(updatedUser);
+          
           // Update our state with this data
           set({
-            user: {
-              ...initialUser,
-              id: supabaseUser.id,
-              email: supabaseUser.email || '',
-              name: supabaseUser.user_metadata?.name || profileData?.name || '',
-              position: supabaseUser.user_metadata?.position || profileData?.position || '',
-              department: supabaseUser.user_metadata?.department || profileData?.department || '',
-              phone: supabaseUser.user_metadata?.phone || profileData?.phone || '',
-              avatar: supabaseUser.user_metadata?.avatar || profileData?.avatar_url || '',
-              joinDate: supabaseUser.user_metadata?.joinDate || profileData?.join_date || '',
-              employeeId: supabaseUser.user_metadata?.employeeId || profileData?.employee_id || '', 
-              profile_complete: isProfileComplete,
-              center: supabaseUser.user_metadata?.center || profileData?.center || '',
-              hourlyWage: supabaseUser.user_metadata?.hourlyWage || profileData?.hourly_wage || '',
-              employmentStatus: supabaseUser.user_metadata?.employmentStatus || profileData?.employment_status || '',
-              unit: supabaseUser.user_metadata?.unit || profileData?.unit || ''
-            },
+            user: updatedUser,
             isAuthenticated: true,
             loading: false,
             error: null
           });
         } catch (error: any) {
           console.error('Error syncing user with Supabase:', error);
-          set({ loading: false, error: error.message || 'Error syncing profile' });
+          // Determine if this is a network error and provide a more helpful message
+          const errorMessage = error.message?.includes('NetworkError') || error.message?.includes('network') 
+            ? 'Network connection issue detected. Please check your internet connection.'
+            : error.message || 'Error syncing profile';
+          
+          // Try to load user data from localStorage as fallback
+          const cachedUserData = useUserStore.getState().loadUserFromLocalStorage();
+          if (cachedUserData && cachedUserData.id) {
+            console.log('Found cached user data, using that while having connectivity issues');
+            set({
+              user: cachedUserData,
+              loading: false, 
+              error: 'Using locally saved data due to connectivity issues.',
+              isAuthenticated: true
+            });
+            return;
+          }
+            
+          set({ 
+            loading: false, 
+            error: errorMessage,
+            // Keep authentication state to prevent unnecessary logouts during temporary network issues
+            isAuthenticated: supabaseUser ? true : false 
+          });
         }
       },
     }),

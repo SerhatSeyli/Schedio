@@ -82,12 +82,39 @@ export function AuthForm() {
     }
   })
 
+  // Check if offline mode is enabled
+  const isOfflineMode = () => {
+    try {
+      return typeof window !== 'undefined' && localStorage.getItem('schedio_offline_mode_enabled') === 'true';
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Handle login submit
   const onLoginSubmit = async (data: z.infer<typeof loginSchema>) => {
     setLoading(true)
     setAuthError(null)
     
     try {
+      // Check if we're in offline mode before attempting login
+      if (isOfflineMode()) {
+        // Show a friendly message about offline mode
+        setAuthSuccess('Offline mode active. Using local data...')
+        toast({
+          title: "Offline Mode Active",
+          description: "Using locally stored data. Some features may be limited.",
+          variant: "default"
+        })
+        
+        // Since we're offline, we'll simulate a successful login
+        // The mock Supabase client will handle the actual authentication
+        setTimeout(() => {
+          router.push('/dashboard')
+        }, 1500)
+        return
+      }
+
       const success = await login({
         email: data.email,
         password: data.password
@@ -104,7 +131,40 @@ export function AuthForm() {
       }
     } catch (err: any) {
       console.error('Login error:', err)
-      setAuthError(err.message || 'An unexpected error occurred during login. Please try again.')
+      
+      // Check if this is a network error
+      if (err.message && (
+        err.message.includes('Failed to fetch') ||
+        err.message.includes('NetworkError') ||
+        err.message.includes('network')
+      )) {
+        // This is a network error, offer to enable offline mode
+        setAuthError('Network connectivity issues detected. Try enabling offline mode.')
+        
+        // Add a button to enable offline mode
+        toast({
+          title: "Network Issues Detected",
+          description: "Would you like to enable offline mode?",
+          action: (
+            <Button 
+              variant="default" 
+              onClick={() => {
+                // Store the offline preference
+                localStorage.setItem('schedio_offline_mode_enabled', 'true')
+                
+                // Reload the page to apply offline mode
+                window.location.reload()
+              }}
+            >
+              Enable Offline Mode
+            </Button>
+          ),
+          duration: 10000
+        })
+      } else {
+        // Regular error
+        setAuthError(err.message || 'An unexpected error occurred during login. Please try again.')
+      }
     } finally {
       setLoading(false)
     }

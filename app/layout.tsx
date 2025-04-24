@@ -9,6 +9,7 @@ import { AuthRedirect } from "@/components/auth/auth-redirect"
 // Import directly from the file path to avoid TypeScript errors
 import { AuthInitializer } from "../components/auth/auth-initializer"
 import { Toaster } from "@/components/ui/toaster"
+import ConnectionToggleWrapper from "@/components/connection-toggle-wrapper"
 
 
 const inter = Inter({ subsets: ["latin"] })
@@ -36,6 +37,7 @@ export default function RootLayout({
             </SidebarProvider>
           </ThemeProvider>
           <Toaster />
+          <ConnectionToggleWrapper />
         </AuthProvider>
       </body>
     </html>
